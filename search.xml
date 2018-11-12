@@ -1,6 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title><![CDATA[设计模式-单例【Single】]]></title>
+    <url>%2Fblog%2F2018%2F11%2F12%2F%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E5%8D%95%E4%BE%8B%E3%80%90Single%E3%80%91%2F</url>
+    <content type="text"><![CDATA[模版方法，父类定义模版方法，子类重写抽象和钩子方法。 介绍单例，在日常开发中，可以说的最常用的。应用的很广泛，也有很多不同的实现。全局只有一个类实例。 特点1.构造函数私有，不能使用 new 直接创建对象。 2.通过静态方法getInstance()方法，创建对象实例。 3.对象实例引用只对自己可见。 单例与静态 单例：可以持有状态，可以线程安全，可以实现lazy-load，全局只有一个实例。 静态：并不能持有状态，线程安全，并在是类加载的时候，就实例了。 写法饿汉模式(推荐) 123456789101112public class Singleton &#123; private static Singleton instance=new Singleton(); private Singleton()&#123;&#125;; public static Singleton getInstance()&#123; return instance; &#125;&#125; 12345678910111213141516public class Singleton&#123; private static Singleton instance = null; static &#123; instance = new Singleton(); &#125; private Singleton() &#123;&#125;; public static Singleton getInstance() &#123; return instance; &#125;&#125;]]></content>
+      <categories>
+        <category>设计模式</category>
+      </categories>
+      <tags>
+        <tag>设计模式</tag>
+      </tags>
+  </entry>
+  <entry>
     <title><![CDATA[设计模式-责任链【Chain Of Responsibility】]]></title>
     <url>%2Fblog%2F2018%2F11%2F10%2F%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E8%B4%A3%E4%BB%BB%E9%93%BE%E3%80%90Chain-Of-Responsibility%E3%80%91%2F</url>
     <content type="text"><![CDATA[责任链，将多个对象组合成一条责任链，对逻辑进行链式处理。 介绍责任链设计模式，在web开发中，使用可能比较少，但是应用还是比较多，比如，拦截器的实现，过滤器，tomcat 处理请求，mybatis的拦截器。应用的例子很多。这也是一个比较重要的设计模式。 UML 使用说明 clent:调用方Handler.excute()。调用整个执行链 Handler:责任链上的对象的接口类,定义责任链上的类的接口。 setNext(Handler)：设置责任链上下处理业务handler excute()：对外报漏的执行方法，触发执行整个责任链。整个链的执行逻辑方法，执行下个节点还是返回。 abstract process():抽象方法，业务子类实现该方法，每个业务处理单元实现业务方法 AHandler:实现handler抽象process方法，业务处理方法 BHandler:实现handler抽象process方法，业务处理方法，还有一些私有的方法。 应用在很多地方都有应用，在tomcat处理请求的时候，对request的处理就使用了责任链的设计模式对，请求惊醒处理，先处理过滤器逻辑，在处理拦截器，在根据url的mapping映射到对应的业务逻辑处理Controller。在做mybatis插件的时候，他的拦截器也是使用的责任的设计模式。 优点举个例子，就拿request请求来说，到达服务的时候，可能对url很多不同的处理，全部的逻辑在一个方法里，或者是一个类，这样，方法，类的职业，并不单一，并且全部耦合在一起，一旦逻辑复杂维护成高会非常高。 使用责任链设计模式，就弱化了请求方和处理方的关联关系，很好的解耦，每一个组件都可以成为一个独立服用的组件，并且可以通过组合的方式，可以处理流程更加灵活。逻辑性更加清晰，可以使用配置的方式，组合不同责任链组件，维护成本也会大大减低。 源地址https://github.com/wangypeng/java-design-mode-source/tree/master/chain-of-responsibility]]></content>
