@@ -2,7 +2,7 @@
 <search>
   <entry>
     <title><![CDATA[设计模式-责任链【Chain Of Responsibility】]]></title>
-    <url>%2F2018%2F11%2F10%2F%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E8%B4%A3%E4%BB%BB%E9%93%BE%E3%80%90Chain-Of-Responsibility%E3%80%91%2F</url>
+    <url>%2Fblog%2F2018%2F11%2F10%2F%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E8%B4%A3%E4%BB%BB%E9%93%BE%E3%80%90Chain-Of-Responsibility%E3%80%91%2F</url>
     <content type="text"><![CDATA[责任链，将多个对象组合成一条责任链，对逻辑进行链式处理。 介绍责任链设计模式，在web开发中，使用可能比较少，但是应用还是比较多，比如，拦截器的实现，过滤器，tomcat 处理请求，mybatis的拦截器。应用的例子很多。这也是一个比较重要的设计模式。 UML 使用说明 clent:调用方Handler.excute()。调用整个执行链 Handler:责任链上的对象的接口类,定义责任链上的类的接口。 setNext(Handler)：设置责任链上下处理业务handler excute()：对外报漏的执行方法，触发执行整个责任链。整个链的执行逻辑方法，执行下个节点还是返回。 abstract process():抽象方法，业务子类实现该方法，每个业务处理单元实现业务方法 AHandler:实现handler抽象process方法，业务处理方法 BHandler:实现handler抽象process方法，业务处理方法，还有一些私有的方法。 应用在很多地方都有应用，在tomcat处理请求的时候，对request的处理就使用了责任链的设计模式对，请求惊醒处理，先处理过滤器逻辑，在处理拦截器，在根据url的mapping映射到对应的业务逻辑处理Controller。在做mybatis插件的时候，他的拦截器也是使用的责任的设计模式。 优点举个例子，就拿request请求来说，到达服务的时候，可能对url很多不同的处理，全部的逻辑在一个方法里，或者是一个类，这样，方法，类的职业，并不单一，并且全部耦合在一起，一旦逻辑复杂维护成高会非常高。 使用责任链设计模式，就弱化了请求方和处理方的关联关系，很好的解耦，每一个组件都可以成为一个独立服用的组件，并且可以通过组合的方式，可以处理流程更加灵活。逻辑性更加清晰，可以使用配置的方式，组合不同责任链组件，维护成本也会大大减低。 源地址https://github.com/wangypeng/java-design-mode-source/tree/master/chain-of-responsibility]]></content>
       <categories>
         <category>设计模式</category>
@@ -13,7 +13,7 @@
   </entry>
   <entry>
     <title><![CDATA[spring验证框架]]></title>
-    <url>%2F2018%2F10%2F02%2Fspring%E9%AA%8C%E8%AF%81%E6%A1%86%E6%9E%B6%2F</url>
+    <url>%2Fblog%2F2018%2F10%2F02%2Fspring%E9%AA%8C%E8%AF%81%E6%A1%86%E6%9E%B6%2F</url>
     <content type="text"><![CDATA[基础标准JSR-303规范验证框架@Valid和@Validated,风骚的操作 为什么要引入验证框架日常开发中，在Controller中校验参数，可能是日常编码编码中比较烦的一件事，大段的验证代码，没有任何业务意义，在参数校验较多的时候，会导致controller方法非常的臃肿，并且也不好维护，需要大量的注释维护语义。这可能是我开发中的一个痛点了。但是在后来，接触到了Validation框架，真的是击中了我的痛点，所以详细的整理了一下。写了这篇文章。 介绍java很早就有了标准JSR-303，javax提供了@Valid（标准JSR-303规范），Spring Validation验证框架对参数的验证机制提供了@Validated（Spring’s JSR-303规范，是标准JSR-303的一个变种）。 API对象验证bean中增加验证标签 标签 功能 @Null 限制只能为null @NotNull 限制必须不为null @AssertFalse 限制必须为false @AssertTrue 限制必须为true @DecimalMax(value) 限制必须为一个不大于指定值的数字 @DecimalMin(value) 限制必须为一个不小于指定值的数字 @Digits(integer,fraction) 限制必须为一个小数，且整数部分的位数不能超过integer，小数部 分的位数不能超过fraction @Future 限制必须是一个将来的日期 @Max(value) 限制必须为一个不大于指定值的数字 @Min(value) 限制必须为一个不小于指定值的数字 @Pattern(value) 限制必须符合指定的正则表达式 @Size(max,min) 限制字符长度必须在min到max之间 @NotEmpty 验证注解的元素值不为null且不为空（字符串长度不为0、集合大小不 为0） @NotBlank 验证注解的元素值不为空（不为null、去除首位空格后长度为0） ,不同于@NotEmpty ，@NotBlank只应用于字符串且在比较时会去除字符串的空格 @Email 验证注解的元素值是Email，也可以通过正则表达式和flag指定自定 义的email格式 分组上述注解标签都支持，group属性，新写一个接口类，在填写注解接口类型 嵌套在日常开发中，会碰到嵌套对象的情况，嵌套对象的需要验证，可以在验证的域上增加@Valid，当且仅当只有@Valid支持对象嵌套验证。 补充其他功能注解 @DateTimeFormat(pattern=”yyyy-MM-ddHH:mm:ss”) 时间格式标签 @JsonFormat(pattern=”yyyy-MM-ddHH:mm:ss”) json格式化标签 使用Controller方法参数签字中对象，增加@Validated/@Valid，在方法上最好使用 @Validated，这个注解支持分组验证。 单个签字域校验需要使用@Validated，这个注解支持类验证，即可对单个域进行验证。 自定义注解及处理器demo: 123456789101112@Target(&#123;ElementType.TYPE, ElementType.METHOD, ElementType.FIELD, ElementType.ANNOTATION_TYPE, ElementType.CONSTRUCTOR, ElementType.PARAMETER&#125;)@Retention(RetentionPolicy.RUNTIME)@Documented@Constraint(validatedBy = &#123;EmailValidator.class&#125;)public @interface ValidEmail &#123; boolean required() default true; String message() default "邮箱不合法"; Class&lt;?&gt;[] groups() default &#123;&#125;; Class&lt;? extends Payload&gt;[] payload() default &#123;&#125;;&#125; 描述：@Constraint(validatedBy = {EmailValidator.class}) 通过这个注解定义它的处理验证器 123456789101112131415public class EmailValidator implements ConstraintValidator&lt;ValidEmail, String&gt; &#123; private boolean required = false; //初始化方法 @Override public void initialize(ValidEmail constraintAnnotation) &#123; required = constraintAnnotation.required(); &#125; //校验方法 @Override public boolean isValid(String value, ConstraintValidatorContext context) &#123; doSomething(); &#125;&#125; 描述：ConstraintValidator 实现接口重写方法 定义消息体必须指定这个路径和文件名：resource/ValidationMessages.properties文件的编码为ASCII 验证异常处理两种： 方法中增加BindException 定义全局异常处理器，单域验证ConstraintViolationException，对象验证BindException，resquestBody对象验证MethodArgumentNotValidException ide验证 配置使用@NotNull和@Nullable注解，通过上下文进行校验。 源码地址:https://github.com/wangypeng/spring-boot-validator]]></content>
       <categories>
         <category>spring</category>
@@ -24,7 +24,7 @@
   </entry>
   <entry>
     <title><![CDATA[设计模式-代理【Proxy】]]></title>
-    <url>%2F2018%2F09%2F01%2F%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E4%BB%A3%E7%90%86%E3%80%90Proxy%E3%80%91%2F</url>
+    <url>%2Fblog%2F2018%2F09%2F01%2F%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E4%BB%A3%E7%90%86%E3%80%90Proxy%E3%80%91%2F</url>
     <content type="text"><![CDATA[代理设计模式，代理目标，代替直接操作目标对象。 介绍代理设计模式，在日常开发中，还是很常用的。主要是代理一个类的方法，在代理类做一些其他的逻辑。也可以说是为目标类分担一部分工作。 UML 方法说明 Client:调用方，调用目标的方法的类。 Subject:主体，目标类和代理对象的实现的接口，为Proxy和RealSubject定义一致性接口。 Proxy:代理对象，持有目标类的对象实例，通过调用proxy持有的目标类对象间接调用RealSubject中的方法，在代理方法中做一些其他的逻辑，或者分担一些目标方法的任务。 RealSubject:真正调用被调用，被代理的对象。 Spring 中的两种代理方式spring的aop就是通过代理的方式实现方法的织入的，aop的实现方式有两种： jdk原生代理：jdk原生包中提供的功能。原生代理只能代理接口的实现类，通过反射的方式调用。 cglib代理：第三方的代理方式，这是一个生成代码的工具包，主要是通过继承的方式，生成目标对象的子类，从而代理目标方法，通过继承的方式实现。所以因为通过继承的方式实现，也就不能使用代理final class，其他的类都是能通过这种方式代理。 源码地址：https://github.com/wangypeng/java-design-mode-source/tree/master/proxy]]></content>
       <categories>
         <category>设计模式</category>
@@ -35,7 +35,7 @@
   </entry>
   <entry>
     <title><![CDATA[设计模式-组合【Composite】]]></title>
-    <url>%2F2018%2F08%2F18%2F%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E7%BB%84%E5%90%88%E3%80%90Composite%E3%80%91%2F</url>
+    <url>%2Fblog%2F2018%2F08%2F18%2F%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E7%BB%84%E5%90%88%E3%80%90Composite%E3%80%91%2F</url>
     <content type="text"><![CDATA[组合状态模式，递归组合目标数据结构。 介绍组合设计模式，主要是使用容器和内容具有一致性，并使用这种一致性，去创建递归的数据结构。 应用场景根据的结构设计模式的特点：递归的数据机构。可以构建，树，文件夹，这种迭代的数据结构。还有一些其他的设计模式种，也有使用组合设计模式，比如，命令模式，访问者模式，装饰器，都是使用组合设计模式类似的思想。 UML 方法说明 Component:抽象类，定义结构的主要方法，定义add和remove，根据业务定义业务方法。 Leaf:子类，结构体内的数据节点。 Composite:组合体，用于递归存储的机构。 Client:使用Leaf和Composite构建递归数据结构。 优点一致性，可以构建递归数据结构。 源码地址:https://github.com/wangypeng/java-design-mode-source/tree/master/composite]]></content>
       <categories>
         <category>设计模式</category>
@@ -46,7 +46,7 @@
   </entry>
   <entry>
     <title><![CDATA[设计模式-适配器【Adapter】]]></title>
-    <url>%2F2018%2F08%2F12%2F%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E9%80%82%E9%85%8D%E5%99%A8%E3%80%90Adapter%E3%80%91%2F</url>
+    <url>%2Fblog%2F2018%2F08%2F12%2F%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E9%80%82%E9%85%8D%E5%99%A8%E3%80%90Adapter%E3%80%91%2F</url>
     <content type="text"><![CDATA[适配器，兼容两个不能工作的接口或者类。 介绍适配器，在日常开发中还是挺常用的。现在的编程都是面上接口编程，所以，在拓展的时候，一个接口调用另外一个接口的时候，可能就会存在不匹配的时候，那就可以使用适配模式，增加一层适配器，去适配两个接口，这样两个就接口就能正常调用了。 适配器模式有三种：类适配器、对象适配器、接口适配器 应用场景主要是应用两个接口不兼容，在两个接口之间做一层适配，让两个接口能够正常工作。 UML 方法说明 client：客户端，调用者。 target：目标接口。 adapter：适配器，适配，target中的方法，和adaptee中的方法。 adaptee：被适配的类或对象或接口。 使用 类适配器：adapter 继承 adaptee 中的方法和 实现 target 中的目标方式，实现的方法中调用adaptee中的方法，从而达到适配的效果。 对象适配器：通过 构造器 持有 adaptee 的对象实实例，在实现 target 方法中调用实例的方法，实现适配的效果。 接口适配器：通过 抽象类 对 adaptee 默认空实现，在 继承 abstarctAdapter，在实现 target 中要用到的方法，而不是实现全部的方法，从而达到适配，是组件之间解耦。 注：接口适配器，并不常用，因为正常接口定义应该符合单一职责原则，并且通过组合的方式，实现不同的功能。所以接口这种用的较少。个人理解，比较鸡肋，但是看到别人有做，就也写上了。主要是类的适配和对象的适配。 优缺点保证了client不需要做任何修改，被适配的接口，需要不要修改，保证了开闭原则，并且对源码没有入侵。很好的解耦。 拓展性良好 个人question：前一阵，在开发中就发现，一个方法要调用另外的一个方法的时候，需要异步调用，可以直接在那个被调用的方法上直接用@Async就能搞定，但是有一个问题，所做的业务同样的方法需要同步调用，和异步调用，直接调用的话，就不能用@Async标注的方法，用原有的方式就需要写两套代码，一套同步，一套异步。 solution：我就在单独抽象了一个方法，加上@Async注解，通过反射的方式调用。很好的实现了解耦。同步调用：直接调用被调用方法即可。异步调用：将要调用目标方法的 类名 ， 方法名 ，参数 传入，通过spring的反射调用被调用方法。 源码地址：https://github.com/wangypeng/java-design-mode-source/tree/master/adapter]]></content>
       <categories>
         <category>设计模式</category>
@@ -57,7 +57,7 @@
   </entry>
   <entry>
     <title><![CDATA[volatile关键字]]></title>
-    <url>%2F2018%2F08%2F12%2Fvolatile%E5%85%B3%E9%94%AE%E5%AD%97%2F</url>
+    <url>%2Fblog%2F2018%2F08%2F12%2Fvolatile%E5%85%B3%E9%94%AE%E5%AD%97%2F</url>
     <content type="text"></content>
       <categories>
         <category>jvm</category>
@@ -68,7 +68,7 @@
   </entry>
   <entry>
     <title><![CDATA[happen-before]]></title>
-    <url>%2F2018%2F08%2F12%2Fhappen-before%2F</url>
+    <url>%2Fblog%2F2018%2F08%2F12%2Fhappen-before%2F</url>
     <content type="text"><![CDATA[heppen-before]]></content>
       <categories>
         <category>jvm</category>
@@ -79,7 +79,7 @@
   </entry>
   <entry>
     <title><![CDATA[逃逸分析和栈上分配]]></title>
-    <url>%2F2018%2F08%2F12%2F%E9%80%83%E9%80%B8%E5%88%86%E6%9E%90%E5%92%8C%E6%A0%88%E4%B8%8A%E5%88%86%E9%85%8D%2F</url>
+    <url>%2Fblog%2F2018%2F08%2F12%2F%E9%80%83%E9%80%B8%E5%88%86%E6%9E%90%E5%92%8C%E6%A0%88%E4%B8%8A%E5%88%86%E9%85%8D%2F</url>
     <content type="text"><![CDATA[逃逸分析和栈上分配]]></content>
       <categories>
         <category>jvm</category>
@@ -90,7 +90,7 @@
   </entry>
   <entry>
     <title><![CDATA[设计模式-原型【Prototype】]]></title>
-    <url>%2F2018%2F08%2F04%2F%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E5%8E%9F%E5%9E%8B%E3%80%90Prototype%E3%80%91%2F</url>
+    <url>%2Fblog%2F2018%2F08%2F04%2F%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E5%8E%9F%E5%9E%8B%E3%80%90Prototype%E3%80%91%2F</url>
     <content type="text"><![CDATA[原型设计模式，实现clone接口，复制新对象。 介绍原型设计模式，还是挺重要的，在日常开发中，可能经常用到，但是我们都没有注意，或者是有些应该用原型而没有用。原型设计模式主要是通过复制的方式生成实力。 应用场景UML 方法说明Prototype(原型接口)：原型接口，用于定义原型类对象，定义clone方法，子类实现clone方法，接口对外提供clone方法。ConcretePrototype(具体实现类)：实现Prototype接口，并且实现clone方法。Client(客户端)：client通过接口调用clone，复制生成新的对象。 优缺点 优点:在复制对象的时候，不需要关系如何复制。 缺点:可能不同业务，实现方式并不满足。 拓展型完全和客户端解耦，client只是调用，并不需要关心，原型类对象的内部实现。并且，都是在单个对象中定义。指责单一。 代码地址:]]></content>
       <categories>
         <category>设计模式</category>
@@ -101,7 +101,7 @@
   </entry>
   <entry>
     <title><![CDATA[java CAS原理]]></title>
-    <url>%2F2018%2F07%2F22%2Fjava-CAS%E5%8E%9F%E7%90%86%2F</url>
+    <url>%2Fblog%2F2018%2F07%2F22%2Fjava-CAS%E5%8E%9F%E7%90%86%2F</url>
     <content type="text"><![CDATA[CAS 深入理解。 线程安全问题引发的思考java中线程之间通信的线程安全问题，已经是老生常谈了，有这么几种解决方案： 使用synchronized关键字，但是我们知道这种简单粗暴，但是付出的代价是惨重的，会减低很多性能，其实也是称之为重量级锁。 concurrent包中ReentrantLock，实现读写分离，有效的提高了并发，典型的例子：ConcurrentHashMap,就是使用ReentrantLock,加上分段锁的机制，保证了线程安全的前提下，提高了并发。相较于synchronized，更佳轻量 concurrent包中Atomic类，实现原理，则是使用的CAS，实现的线程安全，本文将主要介绍CAS原理及实现机制。性能相对较高些。 CAS(compare and swap)比较交换用当前内存地址上的值和预期的值比较，若相等，内存更新为新的值，若不相等，不更新。 java中实现：通过底层计算机的CAS原理，java层面，通过自旋当时方式实现，当前值和预期不一样的时候，采用自旋的方式，直到compare成功，set值，但是这种方式，会占用大量cpu时间，jvm也做了优化，在自旋时降低cpu使用率，在自旋的时候jvm会pause,减低cpu使用率。 在自学的过程中，发现，其实java代码，比较简洁，最底层是JNDI的方法，也是多方查找，总算找到了，更低层，实现CAS的原理，下面将详细介绍： java中Atomic源码，以AtomicIntger的addAndGet为例AtomicInteger包中的addAndGet123public final int addAndGet(int delta) &#123; return unsafe.getAndAddInt(this, valueOffset, delta) + delta;&#125;Unsfe包中getAndAddInt1234567public final int getAndAddInt(Object var1, long var2, int var4) &#123; int var5; do &#123; var5 = this.getIntVolatile(var1, var2); &#125; while(!this.compareAndSwapInt(var1, var2, var5, var5 + var4)); return var5;&#125;12public final native boolean compareAndSwapInt(Object var1, long var2, int var4, int var5);在代码中，能看到在java语言方面，是通过自旋的方式，一直循环，直到compareAndSwapInt为true为true的时候返回。 其实最重要是compareAndSwapInt这个方法，又干了些什么那，继续谈论。 其实再底层，就是物理机上做的原子操作，也就是硬件做的优化：在多处理器环境下，LOCK#信号可以确保处理器独占使用某些共享内存。lock 可以被添加在下面的指令前：ADD, ADC, AND, BTC, BTR, BTS, CMPXCHG, CMPXCH8B, CMPXCHG16B, DEC, INC, NEG, NOT, OR, SBB, SUB, XOR, XADD, and XCHG.也就是所有的更新内存地址上数据的操作，通过在 inc 指令前添加 lock 前缀，即可让该指令具备原子性。多个核心同时执行同一条 inc 指令时，会以串行的方式进行，也就避免了上面所说的那种情况。那么这里还有一个问题，lock 前缀是怎样保证核心独占某片内存区域的呢？答案如下： 在 Intel 处理器中，有两种方式保证处理器的某个核心独占某片内存区域。第一种方式是通过锁定总线，让某个核心独占使用总线，但这样代价太大。总线被锁定后，其他核心就不能访问内存了，可能会导致其他核心短时内停止工作。第二种方式是锁定缓存，若某处内存数据被缓存在处理器缓存中。处理器发出的 LOCK# 信号不会锁定总线，而是锁定缓存行对应的内存区域。其他处理器在这片内存区域锁定期间，无法对这片内存区域进行相关操作。相对于锁定总线，锁定缓存的代价明显比较小。 总结下：物理机的cpu发出的指令，现在市面的cpu，根据操作的内存数据的情况，使用总线锁，或者缓存锁。如果是操作的数据是在内存的单行，会使用缓存锁，其他的cpu处理器，还是可以总线和内存交互，性能较高，但是操作的数据不在一个内存的数据较大，在内存地址上的多行，或者操作比较复杂，还是会使用总线锁，其他cpu处理器无法通过总线和内存交互，也就是会影响到其他的处理器的正常工作，性能较差。 再介绍下上面的总线，和物理机器结构，和cpu相关的工作流程。 总线：图总的system bus。cpu和内存传输的桥梁，多核cpu都是通过这一个总线和主内存交互。也是cpu和其他的硬件交互的通道，所以，总线锁，锁住总线，可以实现原子操作，并且因为总线锁，只能一个cpu处理器和内存交互，所以性能也是糟糕的。 参考文章：https://www.cnblogs.com/nullllun/p/9039049.html CAS缺点 CAS虽然很高效的解决原子操作，但是CAS仍然存在三大问题。ABA问题，循环时间长开销大和只能保证一个共享变量的原子操作 ABA问题。因为CAS需要在操作值的时候检查下值有没有发生变化，如果没有发生变化则更新，但是如果一个值原来是A，变成了B，又变成了A，那么使用CAS进行检查时会发现它的值没有发生变化，但是实际上却变化了。ABA问题的解决思路就是使用版本号。在变量前面追加上版本号，每次变量更新的时候把版本号加一，那么A－B－A 就会变成1A-2B－3A。 从Java1.5开始JDK的atomic包里提供了一个类AtomicStampedReference来解决ABA问题。这个类的compareAndSet方法作用是首先检查当前引用是否等于预期引用，并且当前标志是否等于预期标志，如果全部相等，则以原子方式将该引用和该标志的值设置为给定的更新值。 关于ABA问题参考文档: http://blog.hesey.net/2011/09/resolve-aba-by-atomicstampedreference.html 循环时间长开销大。自旋CAS如果长时间不成功，会给CPU带来非常大的执行开销。如果JVM能支持处理器提供的pause指令那么效率会有一定的提升，pause指令有两个作用，第一它可以延迟流水线执行指令（de-pipeline）,使CPU不会消耗过多的执行资源，延迟的时间取决于具体实现的版本，在一些处理器上延迟时间是零。第二它可以避免在退出循环的时候因内存顺序冲突（memory order violation）而引起CPU流水线被清空（CPU pipeline flush），从而提高CPU的执行效率。 只能保证一个共享变量的原子操作。当对一个共享变量执行操作时，我们可以使用循环CAS的方式来保证原子操作，但是对多个共享变量操作时，循环CAS就无法保证操作的原子性，这个时候就可以用锁，或者有一个取巧的办法，就是把多个共享变量合并成一个共享变量来操作。比如有两个共享变量i＝2,j=a，合并一下ij=2a，然后用CAS来操作ij。从Java1.5开始JDK提供了AtomicReference类来保证引用对象之间的原子性，你可以把多个变量放在一个对象里来进行CAS操作。]]></content>
       <categories>
         <category>jvm</category>
@@ -112,7 +112,7 @@
   </entry>
   <entry>
     <title><![CDATA[jvm工具-greys]]></title>
-    <url>%2F2018%2F07%2F14%2Fjvm%E5%B7%A5%E5%85%B7-greys%2F</url>
+    <url>%2Fblog%2F2018%2F07%2F14%2Fjvm%E5%B7%A5%E5%85%B7-greys%2F</url>
     <content type="text"><![CDATA[CAS 深入理解。 摘要最近在工作中，出现了一个接口请求时间较长的情况。但是我了解的java自带的工具，并不能很好的显示整个接口耗时的具体情况。最后也是在github上找到了一个阿里大神写的sh脚本，这个脚本，是用java写的，做了很好的classloader的隔离，并且，很轻量，占用资源很少，安装简便，耗时分析更佳之直观。 安装步骤 首先进入进入安装目录 安装 curl -sLk http://ompc.oss.aliyuncs.com/greys/install.sh|sh 开启greys服务 ./greys [@IP:PORT] 进入greys服务后，进行想要的操作，greys相关命令：如下命令说明help查看命令的帮助文档，每个命令和参数都有很详细的说明sc查看JVM已加载的类信息sm查看已加载的方法信息monitor方法执行监控trace渲染方法内部调用路径，并输出方法路径上的每个节点上耗时ptrace方强化版的trace命令。通过指定渲染路径，并可记录下路径中所有方法的入参、返值；与tt命令联动。watch方法执行数据观测tt方法执行数据的时空隧道，记录下指定方法每次调用的入参和返回信息，并能对这些不同的时间下调用进行观测stack输出当前方法被调用的调用路径version输出当前目标Java进程所加载的Greys版本号quit退出greys客户端shutdown关闭greys服务端reset重置增强类，将被greys增强过的类全部还原jvm查看当前JVM的信息 官方github:https://github.com/oldmanpushcart/greys-anatomy/wiki/Getting-Started]]></content>
       <categories>
         <category>jvm</category>
@@ -123,7 +123,7 @@
   </entry>
   <entry>
     <title><![CDATA[blog-表格]]></title>
-    <url>%2F2018%2F07%2F07%2Fblog-%E8%A1%A8%E6%A0%BC%2F</url>
+    <url>%2Fblog%2F2018%2F07%2F07%2Fblog-%E8%A1%A8%E6%A0%BC%2F</url>
     <content type="text"><![CDATA[blog-md表格今天写blog的时候，想写一个表格，就是网上百度了一下，md表格的语法。 12345| 水果 | 价格 | 数量 || :--------: | :----- | :----: || 香蕉 | $1 | 5 || 苹果 | $1 | 6 || 草莓 | $1 | 7 | 这个是md的语法，效果是这样的。 水果 价格 数量 香蕉 $1 5 苹果 $1 6 草莓 $1 7 但是我的需求是这样的需要可以合并单元格的，最后才知道md暂不支持合并单元格。但是md是支持html的，html当然是支持合并单元格的。所以想要有合并单元格需求的时候，可以使用html来写表格。但是写html的时候也需要到其他的坑。下图为现象下图为html源码下图为md源码可能是md源码中有换行符的问题，导致解析出问题，多了好多&lt;br&gt;，我把所有的格式都去掉了，就可以了。下图为修改完的格式下午为修改后的md源码]]></content>
       <categories>
         <category>blog</category>
@@ -134,7 +134,7 @@
   </entry>
   <entry>
     <title><![CDATA[java 8 stream]]></title>
-    <url>%2F2018%2F07%2F07%2Fjava-8-stream%2F</url>
+    <url>%2Fblog%2F2018%2F07%2F07%2Fjava-8-stream%2F</url>
     <content type="text"><![CDATA[CAS 深入理解。 java 8java 8 中增加很多的新的特性：lambda,stream,函数式编程,新的api。现在java8已经很普及了。工作中也经常用java8：lambda，steam。都是开发中的利器，首先可以增加开发效率，同时也能保证代码的可读性。虽然工作中使用频率还是挺高的，但是比较片面的，最近也是看了一遍《java 8 实战》 这本书，加上自己的一些测试，现在对java 8 的一些新的特性，有了一些更深入的认识。所以，就打算写一遍博客记录下。 lambdalambda表达式，函数式标称。其实在之前java也是有支持的，但是并不是那么友好，举个栗子： java 8之前的版本 Runnable a = new Runnable() { @Override public void run() { doSomeThing(); } };这个是定义接口，重写没有实现的方法，java8中增加了@FunctionalInterface,这样的接口就可以直接使用lambda表达式。 java8中的lambda写法： Runnable run = () -&gt; doSomeThing();这样，是不是看着很简洁，在了解java8 之前，我很烦java的语法，很冗长，比较喜欢python、golang、js的语法，很简洁。lambda表达式各式如下：格式 // 无参数,直接用() () -&gt; {} // 一个参数，直接指定，不需要带括号 a -&gt; {} // 多个参数，需要带括号，把所有参数包起来 (a,b,x) -&gt; {} // 方法只调用一个方法 () -&gt; doSomeThing() // 方法内部有很多逻辑 () -&gt; { doSomeThing(); // 根据接口方法定义的，是否有返回结果 return someThing; }注意1.函数内部调用外部变量，会默认将外部变量设置为final，所以被调用的外部变量一定不能重新覆盖。2.内存函数的return只是返回内部函数返回，和外层函数无关，在forEach中使用lambda表达式，return 只是返回这次的执行，还会继续执行后面循环。而不是整个方法返回跳出循环。 streamstream这个是我个人非常喜欢的新特性，一个新的迭代的方式，1.8之前的迭代方式只有两种，一个是for或者增强for，一个是iterator。相较于之前的方式，stream方式处理数据更加灵活。下面介绍下stream处理数据的方式 stream操作中间操作无状态unordered() filter() map() mapToInt() mapToLong() mapToDouble()flatMap() flatMapToInt() flatMapToLong() flatMapToDouble() peek()有状态distinct() sorted() sorted() limit() skip()结束操作非短路操作forEach() forEachOrdered() toArray() reduce() collect() max() min()count()短路操作distinct() sorted() sorted() limit() skip()]]></content>
       <categories>
         <category>java8</category>
@@ -145,7 +145,7 @@
   </entry>
   <entry>
     <title><![CDATA[设计模式-模版【Tempalte Method】]]></title>
-    <url>%2F2018%2F06%2F09%2F%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E6%A8%A1%E7%89%88%E3%80%90Tempalte%20Method%E3%80%91%2F</url>
+    <url>%2Fblog%2F2018%2F06%2F09%2F%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E6%A8%A1%E7%89%88%E3%80%90Tempalte%20Method%E3%80%91%2F</url>
     <content type="text"><![CDATA[模版方法，父类定义模版方法，子类重写抽象和钩子方法。 介绍设计模式中，模版设计模式，在日常的开发中，是比较常用的了。很好的复合了ocp(Open Closed Principle)，通过继承的方式，客户端重写抽象方法和钩子方法，实现自己的业务，很好的拓展性。我刚刚开始接触的时候对这个钩子方法也是很迷惑，在下面讲整个结构的时候，会详细的讲解钩子函数。 应用场景UML 方法说明模版方法(main):模版方法，客户端调用的主要方法。抽象方法(concreteMethod):子类提供具体业务实现。勾子方法(hookMethod):父类中提供默认空实现，并且这个方法会在模版方法调用，子类可以重写也可以不用重写。 使用父类：定义模版方法，并且定义抽象方法和钩子方法。子类：根据具体的业务需要重写抽象方法。也可以根据具体的业务场景，重写钩子方法。当然也不可以重写钩子方法。也可以业务定义新的方法。客户端(client)：调用时候主要是调用模版方法。 优缺点 优点： 缺点： 拓展性具有很好的拓展型，根据不同的业务定义不同的子类。 实例源码地址：]]></content>
       <categories>
         <category>设计模式</category>
@@ -156,7 +156,7 @@
   </entry>
   <entry>
     <title><![CDATA[Hexo、Github搭建Blog--站内搜索]]></title>
-    <url>%2F2018%2F06%2F04%2FHexo%E3%80%81Github%E6%90%AD%E5%BB%BABlog-%E7%AB%99%E5%86%85%E6%90%9C%E7%B4%A2%2F</url>
+    <url>%2Fblog%2F2018%2F06%2F04%2FHexo%E3%80%81Github%E6%90%AD%E5%BB%BABlog-%E7%AB%99%E5%86%85%E6%90%9C%E7%B4%A2%2F</url>
     <content type="text"><![CDATA[安装站内搜索主要是通过集成插件的方式实现，步骤如下： 安装 hexo-generator-search 在站点的根目录下执行以下命令：$ npm install hexo-generator-search --save 启用搜索编辑blog 根目录_config.yaml: search: path: search.xml field: post format: html limit: 10000]]></content>
       <categories>
         <category>blog</category>
@@ -167,7 +167,7 @@
   </entry>
   <entry>
     <title><![CDATA[Hexo、Github搭建Blog]]></title>
-    <url>%2F2018%2F06%2F03%2FHexo%E3%80%81Github%E6%90%AD%E5%BB%BABlog%2F</url>
+    <url>%2Fblog%2F2018%2F06%2F03%2FHexo%E3%80%81Github%E6%90%AD%E5%BB%BABlog%2F</url>
     <content type="text"><![CDATA[选择github和hexo搭建blog的原因这是我自己搭建的第一个blog,现在比较流行的有wordpess、github blog。wordpress 通过了解构建比较发杂，所以选择了使用github blog 搭建，使用的是md语法，部署直接使用的是github服务器，也不需要单独搭建服务器。wordpress我不是太了解，大神勿喷。 个人想法：现在做技术，其实在学校上学的时候是有些是时候有很多相似的地方，有些的地方有意思的地方就整理下，善于记录、积累:一，能把这些好想法也好，思路也好，都能记录下来，以便于日后能用到二，书写文章对思路也是一个很好的锻炼，就好像“茶壶里煮饺子”，饺子好了一定要倒出来，才算掌握，一个新的技术只有能清晰的讲解出来，也才算真正的理解三，以后在面试的时候也能也可以在简历上，把自己的github、个人站点、blog写上，也会让你在面试中加分 我也开始上路，把自己的blog刚刚弄好了，就写了这篇文章，md，之前写wiki用过，github写过简单的README.md，但是没有用md来写文章，可能文章格式不好看的地方，大神勿喷 环境准备git我感觉，要是做开发的同学本地一定会装git的，git主要拉取github项目，和github上项目关联。常用的命令也不说了，日常开发中也会经常用到。 node再有一个环境就是node环境，这个主要是hexo这个工具依赖node环境，node的环境的要求，这个我也太清楚，我的本地的node version : v8.11.1，之前开发用的6.x的版本，现在不做node开发，换的高一点版本。6.x+ 肯定是够用的。没问题。 hexohexo 这是blog主要使用的工具，步骤如下： 安装命令 npm i -g hexo 进入目录 cd /xx/xx 执行初始化 hexo init 解释下生成的目录 node_modules：是依赖包 public：存放的是生成的页面 scaffolds：命令生成文章等的模板 source：用命令创建的各种文章 themes：主题 _config.yml：整个博客的配置 db.json：source解析所得到的 package.json：项目所需模块项目的配置信息 创建blog project 首先创建github项目。 设置项目为blog，保存 设置hexo信息，设置你的git地址，分支。 开始小试牛刀hexo cleanhexo ghexo shexo g 是生成对应的文件，也就是把md编写的md文件，生成对应的html文件，可以让服务运行 hexo s 是启动hexo 服务，执行该命令会看到INFO Hexo is running at http://localhost:4000/blog/. Press Ctrl+C to stop.也就是说hexo服务已经起来了。可以通过http://localhost:4000/blog/ 这个url访问。也可以通过-p命令指定端口号。 hexo deploy 这个是部署github 服务的命令，就是讲本地的代码push到服务器上，其实也就是一个静态页面，推送上去。使用这个命令，在公网上使用你刚刚在github中设置pages的那块的url访问你的blog。这样别人就能看到了。 hexo new ‘my first blog’ 可以使用new 这个参数创建md 文件，会直接生成头信息。用md编辑器编辑，再推送到服务器上就ok了。 样式问题其实搞blog，有种当年玩qq空间的感觉，可以到网站去找自己的喜欢的样式，去设置，我也刚刚开始，也没有做的很好看，所以这块就不分享了。 站长统计及搜索引擎 统计留言：可以集成第三的统计插件，在自己的blog里的_config.yml 文件中设置。搜索引擎：可以在百度的站长工具中设置，自己要被爬的链接，把自己的blog url 贴进去，过几天百度爬过了就可以通过百度搜索自己的blog了。自己的文章也可以在百度中搜到了。 域名问题可以自己备案一个域名，在github中blog的项目设置中，pages那块会有个域名设置，这样。github会这个域名解析到你的blog项目下，这样就可以使用自己的域名访问了。是不是很爽呐。 总结 我这个只是刚刚开始，也算是小试牛刀，文章中提到的好多细节，我都没有深入去搞，我下面，我会写一些技术的文章，在写作的过程中，有深入的细节，我也会更新到这个文账中。 Blog源码地址： https://github.com/wangypeng/blog-source]]></content>
       <categories>
         <category>blog</category>
@@ -178,7 +178,7 @@
   </entry>
   <entry>
     <title><![CDATA[Hello World]]></title>
-    <url>%2F2018%2F04%2F17%2Fhello-world%2F</url>
+    <url>%2Fblog%2F2018%2F04%2F17%2Fhello-world%2F</url>
     <content type="text"><![CDATA[Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub. Quick StartCreate a new post1$ hexo new "My New Post" More info: Writing Run server1$ hexo server More info: Server Generate static files1$ hexo generate More info: Generating Deploy to remote sites1$ hexo deploy More info: Deployment]]></content>
       <categories>
         <category>blog</category>
