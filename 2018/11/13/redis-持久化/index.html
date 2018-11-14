@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/blog/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/blog/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/blog/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/blog/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/blog/images/favicon.ico?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/blog/images/favicon.ico?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/blog/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="redis," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="redis两种持久化的方式，rdb(redis database)和aof(append of only)">
+<meta name="keywords" content="redis">
+<meta property="og:type" content="article">
+<meta property="og:title" content="redis-持久化">
+<meta property="og:url" content="https://wangypeng.github.io/blog/2018/11/13/redis-持久化/index.html">
+<meta property="og:site_name" content="peng&#39;s blog">
+<meta property="og:description" content="redis两种持久化的方式，rdb(redis database)和aof(append of only)">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="https://wangypeng.github.io/blog/2018/11/13/redis-持久化/img/index-page-img/redis.jpg">
+<meta property="og:updated_time" content="2018-11-14T06:05:59.124Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="redis-持久化">
+<meta name="twitter:description" content="redis两种持久化的方式，rdb(redis database)和aof(append of only)">
+<meta name="twitter:image" content="https://wangypeng.github.io/blog/2018/11/13/redis-持久化/img/index-page-img/redis.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/blog/',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://wangypeng.github.io/blog/2018/11/13/redis-持久化/"/>
+
+
+
+
+
+  <title>redis-持久化 | peng's blog</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+  
+    <a href="https://github.com/wangypeng/">
+         <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub">
+    </a>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/blog/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">peng's blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">面向对象编程，开心就好</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/blog/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/blog/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/blog/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/blog/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-categories" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://wangypeng.github.io/blog/blog/2018/11/13/redis-持久化/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="那天晴、">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/blog/images/avatar.JPG">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="peng's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">redis-持久化</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-11-13T16:14:31+08:00">
+                2018-11-13
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/blog/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p><img src="img/index-page-img/redis.jpg" alt=""></p>
+<p>redis两种持久化的方式，<strong>rdb</strong>(redis database)和<strong>aof</strong>(append of only)</p>
+<a id="more"></a>
+<h3 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h3><p>redis 是一个键值对存储数据库,基于内存存储,相对于传统基于磁盘做持久化的数据库,操作内存速度更快。所以也用来做缓存服务器。相对于memcache,redis提供了持久化的解决方案，数据安全性更高。<br>redis提供的两种持久化方案，一个rdb(redis database)，一个是aof(append of only),本文将详细介绍这两种持久化。</p>
+<h3 id="SNAPSHOTTING-rdb-redis-database"><a href="#SNAPSHOTTING-rdb-redis-database" class="headerlink" title="SNAPSHOTTING rdb(redis database)"></a>SNAPSHOTTING rdb(redis database)</h3><h4 id="介绍-1"><a href="#介绍-1" class="headerlink" title="介绍"></a>介绍</h4><p>rdb就是将redis内存中的数据做一个<strong>快照</strong>，经过<strong>压缩</strong>，以<strong>二进制</strong>文件的形式，保存到磁盘中。</p>
+<p>默认情况下，Redis以<strong>异步方式</strong>将数据集转储到磁盘上</p>
+<h4 id="相关命令"><a href="#相关命令" class="headerlink" title="相关命令"></a>相关命令</h4><ul>
+<li>SAVE：阻塞redis的服务器进程，直到RDB文件被创建完毕。</li>
+<li>BGSAVE：派生(fork)一个子进程来创建新的RDB文件，记录接收到BGSAVE当时的数据库状态，父进程继续处理接收到的命令，子进程完成文件的创建之后，会发送信号给父进程，而与此同时，父进程处理命令的同时，通过轮询来接收子进程的信号。</li>
+</ul>
+<h4 id="恢复"><a href="#恢复" class="headerlink" title="恢复"></a>恢复</h4><p>在redis启动的时候，会检查是否rdb的二进制文件。有二进制文件，直接将文件拉取到内存中。恢复速度很快。</p>
+<h4 id="配置"><a href="#配置" class="headerlink" title="配置"></a>配置</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"><span class="comment">############################### SNAPSHOTTING  ################################</span></span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> Save the DB on disk:</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash">   save &lt;seconds&gt; &lt;changes&gt;</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash">   Will save the DB <span class="keyword">if</span> both the given number of seconds and the given</span></span><br><span class="line"><span class="meta">#</span><span class="bash">   number of write operations against the DB occurred.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash">   如果同时发生了给定的秒数和针对DB的给定写入操作数，则将保存数据库。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash">   In the example below the behaviour will be to save:</span></span><br><span class="line"><span class="meta">#</span><span class="bash">   after 900 sec (15 min) <span class="keyword">if</span> at least 1 key changed</span></span><br><span class="line"><span class="meta">#</span><span class="bash">   after 300 sec (5 min) <span class="keyword">if</span> at least 10 keys changed</span></span><br><span class="line"><span class="meta">#</span><span class="bash">   after 60 sec <span class="keyword">if</span> at least 10000 keys changed</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash">   在下面的示例中，行为将是保存：</span></span><br><span class="line"><span class="meta">#</span><span class="bash">           900秒后（15分钟）1个key改变</span></span><br><span class="line"><span class="meta">#</span><span class="bash">           300秒后 (5分钟) 10个key改变</span></span><br><span class="line"><span class="meta">#</span><span class="bash">           60秒后 10000 个key改变</span></span><br><span class="line"><span class="meta">#</span><span class="bash">           </span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash">   Note: you can <span class="built_in">disable</span> saving completely by commenting out all <span class="string">"save"</span> lines.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash">   注意：您可以通过注释掉所有“保存”行来完全禁用保存。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash">   It is also possible to remove all the previously configured save</span></span><br><span class="line"><span class="meta">#</span><span class="bash">   points by adding a save directive with a single empty string argument</span></span><br><span class="line"><span class="meta">#</span><span class="bash">   like <span class="keyword">in</span> the following example:</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash">   save <span class="string">""</span></span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash">   也可以通过添加带有单个空字符串参数的save指令来删除所有先前配置的保存点</span></span><br><span class="line"></span><br><span class="line">save 900 1</span><br><span class="line">save 300 10</span><br><span class="line">save 60 10000</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> By default Redis will stop accepting writes <span class="keyword">if</span> RDB snapshots are enabled</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> (at least one save point) and the latest background save failed.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> This will make the user aware (<span class="keyword">in</span> a hard way) that data is not persisting</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> on disk properly, otherwise chances are that no one will notice and some</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> disaster will happen.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 默认情况下，如果启用了RDB快照（至少一个保存点）并且最新的后台保存失败，Redis将停止接受写入。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 这将使用户意识到（以一种困难的方式）数据没有正确地保存在磁盘上，</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 否则很可能没有人会注意到并且会发生一些灾难。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> If the background saving process will start working again Redis will</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> automatically allow writes again.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 如果后台保存过程将再次开始工作，Redis将自动再次允许写入。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> However <span class="keyword">if</span> you have setup your proper monitoring of the Redis server</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> and persistence, you may want to <span class="built_in">disable</span> this feature so that Redis will</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> <span class="built_in">continue</span> to work as usual even <span class="keyword">if</span> there are problems with disk,</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> permissions, and so forth.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 但是，如果您已设置对Redis服务器和持久性的正确监视，则可能需要禁用此功能</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 以便即使磁盘，权限等存在问题，Redis也将继续正常工作。</span></span><br><span class="line"></span><br><span class="line">stop-writes-on-bgsave-error yes</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> Compress string objects using LZF when dump .rdb databases?</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> For default that<span class="string">'s set to '</span>yes<span class="string">' as it'</span>s almost always a win.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> If you want to save some CPU <span class="keyword">in</span> the saving child <span class="built_in">set</span> it to <span class="string">'no'</span> but</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> the dataset will likely be bigger <span class="keyword">if</span> you have compressible values or keys.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 当备份.rdb数据库时使用LZF压缩字符串对象？默认设置为“是”，因为它几乎总是一个胜利。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 如果要在保存子项中保存一些CPU，请将其设置为“否”，但如果您具有可压缩值或键，则数据集可能会更大。</span></span><br><span class="line"></span><br><span class="line">rdbcompression yes</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> Since version 5 of RDB a CRC64 checksum is placed at the end of the file.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> This makes the format more resistant to corruption but there is a performance</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> hit to pay (around 10%) when saving and loading RDB files, so you can <span class="built_in">disable</span> it</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> <span class="keyword">for</span> maximum performances.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 从RDB的第5版开始，CRC64校验和被放置在文件的末尾。这使得格式更能抵抗损坏，</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 但在保存和加载RDB文件时需要支付性能（大约10％），因此您可以禁用它以获得最佳性能。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> RDB files created with checksum disabled have a checksum of zero that will</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> tell the loading code to skip the check.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 禁用校验和创建的RDB文件的校验和为零，将告诉加载代码跳过检查。</span></span><br><span class="line"></span><br><span class="line">rdbchecksum yes</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> The filename <span class="built_in">where</span> to dump the DB</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash">rdb dump 文件名</span></span><br><span class="line"></span><br><span class="line">dbfilename dump.rdb</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> The working directory.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> The DB will be written inside this directory, with the filename specified</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> above using the <span class="string">'dbfilename'</span> configuration directive.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> The Append Only File will also be created inside this directory.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> Note that you must specify a directory here, not a file name.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 文件位置</span></span><br><span class="line"></span><br><span class="line">dir ./</span><br></pre></td></tr></table></figure>
+<h3 id="APPEND-ONLY-MODE-aof-append-of-only"><a href="#APPEND-ONLY-MODE-aof-append-of-only" class="headerlink" title="APPEND ONLY MODE aof(append of only)"></a>APPEND ONLY MODE aof(append of only)</h3><h4 id="介绍-2"><a href="#介绍-2" class="headerlink" title="介绍"></a>介绍</h4><p>如果rdb过程中，机器出了问题，可能会丢失几分钟的数据。</p>
+<p>aof功能类似于日志，会对每一条记录做记录，三种持久化的方案：</p>
+<ul>
+<li>每条记录都记录，但是会占用大量io，会把服务器拖慢</li>
+<li>每秒钟的数据写入磁盘，将一秒钟的数据写入磁盘，可能会丢失一秒钟的数据（官方默认的方案）</li>
+<li>不写入，只有命令执行的时候，才写入，会有很好的性能，但是丢失数据的风险非常大。</li>
+</ul>
+<p>aof每条都记录，随着一直写入request，会导致aof文件会越来越大，并且在恢复的时候，每条都会执行<br>可以使用aof重写，可以多条记录逆为一条命令，减小文件大小</p>
+<p>例子：<br><figure class="highlight gams"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 重写前</span></span><br><span class="line"><span class="keyword">set</span> wang <span class="comment">100</span></span><br><span class="line">incr <span class="comment">wang</span>   </span><br><span class="line">incr <span class="comment">wnag</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 重写后,逆为key最后的状态值</span></span><br><span class="line"><span class="keyword">set</span> <span class="comment">wang 102bg</span></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<h4 id="相关命令-1"><a href="#相关命令-1" class="headerlink" title="相关命令"></a>相关命令</h4><ul>
+<li>bgrewriteao：重写aof文件</li>
+</ul>
+<h4 id="恢复-1"><a href="#恢复-1" class="headerlink" title="恢复"></a>恢复</h4><p>在开启aof持久化的时候，会监测是否有aof文件，优先加载aof文件，然后在监测rdb文件。</p>
+<p>重写后的aof文件更便于恢复，不用每条都写入，直接写入最后的状态值。</p>
+<h4 id="配置-1"><a href="#配置-1" class="headerlink" title="配置"></a>配置</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"><span class="comment">############################# APPEND ONLY MODE ###############################</span></span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> By default Redis asynchronously dumps the dataset on disk. This mode is</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> good enough <span class="keyword">in</span> many applications, but an issue with the Redis process or</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> a power outage may result into a few minutes of writes lost (depending on</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> the configured save points).</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 默认情况下，Redis以异步方式将数据集转储到磁盘上。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 此模式在许多应用程序中都足够好，</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 但Redis进程或停电的问题可能导致几分钟的写入丢失（取决于配置的保存点）。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> The Append Only File is an alternative persistence mode that provides</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> much better durability. For instance using the default data fsync policy</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> (see later <span class="keyword">in</span> the config file) Redis can lose just one second of writes <span class="keyword">in</span> a</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> dramatic event like a server power outage, or a single write <span class="keyword">if</span> something</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> wrong with the Redis process itself happens, but the operating system is</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> still running correctly.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 仅附加文件是一种备用持久性模式，可提供更好的持久性。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 例如，使用默认数据fsync策略（请参阅配置文件中的后面部分）</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> Redis在服务器断电等戏剧性事件中只会丢失一秒写入，</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 如果Redis进程本身出现问题，则会丢失一次，但是操作系统仍然正常运行。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> AOF and RDB persistence can be enabled at the same time without problems.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> If the AOF is enabled on startup Redis will load the AOF, that is the file</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> with the better durability guarantees.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 可以同时启用AOF和RDB持久性而不会出现问题。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 如果在启动时启用AOF，Redis将加载AOF，即具有更好耐久性保证的文件。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> Please check http://redis.io/topics/persistence <span class="keyword">for</span> more information.</span></span><br><span class="line"></span><br><span class="line">appendonly no</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> The name of the append only file (default: <span class="string">"appendonly.aof"</span>)</span></span><br><span class="line"></span><br><span class="line">appendfilename "appendonly.aof"</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> The fsync() call tells the Operating System to actually write data on disk</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> instead of waiting <span class="keyword">for</span> more data <span class="keyword">in</span> the output buffer. Some OS will really flush</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> data on disk, some other OS will just try to <span class="keyword">do</span> it ASAP.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> aof调用告诉操作系统实际在磁盘上写入数据，</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 而不是等待输出缓冲区中的更多数据。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 某些操作系统会真正刷新磁盘上的数据，其他一些操作系统会尽快尝试这样做。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> Redis supports three different modes:</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> no: don<span class="string">'t fsync, just let the OS flush the data when it wants. Faster.</span></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> always: fsync after every write to the append only <span class="built_in">log</span>. Slow, Safest.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> everysec: fsync only one time every second. Compromise.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> no：不要fsync，只需让操作系统在需要时刷新数据。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 快点。始终：每次写入仅附加日志后的fsync。慢，最安全。</span></span><br><span class="line"><span class="meta">#</span><span class="bash">  everysec：fsync每秒只有一次。妥协。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> The default is <span class="string">"everysec"</span>, as that<span class="string">'s usually the right compromise between</span></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> speed and data safety. It<span class="string">'s up to you to understand if you can relax this to</span></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> <span class="string">"no"</span> that will <span class="built_in">let</span> the operating system flush the output buffer when</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> it wants, <span class="keyword">for</span> better performances (but <span class="keyword">if</span> you can live with the idea of</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> some data loss consider the default persistence mode that<span class="string">'s snapshotting),</span></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> or on the contrary, use <span class="string">"always"</span> that<span class="string">'s very slow but a bit safer than</span></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> everysec.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 默认值为“everysec”，因为这通常是速度和数据安全之间的正确折衷。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 这取决于你是否可以理解你是否可以放松这个“不”，</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 让操作系统在需要时刷新输出缓冲区，以获得更好的性能</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> （但如果你能想到一些数据丢失的想法，请考虑默认的持久性模式这是快照），</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 或相反，使用“总是”，这是非常慢但比每秒更安全。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> More details please check the following article:</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> http://antirez.com/post/redis-persistence-demystified.html</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> If unsure, use <span class="string">"everysec"</span>.</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> appendfsync always</span></span><br><span class="line">appendfsync everysec</span><br><span class="line"><span class="meta">#</span><span class="bash"> appendfsync no</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> When the AOF fsync policy is <span class="built_in">set</span> to always or everysec, and a background</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> saving process (a background save or AOF <span class="built_in">log</span> background rewriting) is</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> performing a lot of I/O against the disk, <span class="keyword">in</span> some Linux configurations</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> Redis may block too long on the fsync() call. Note that there is no fix <span class="keyword">for</span></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> this currently, as even performing fsync <span class="keyword">in</span> a different thread will block</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> our synchronous write(2) call.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 当AOF fsync策略设置为always或everysec，</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 并且后台保存过程（后台保存或AOF日志后台重写）</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 正在对磁盘执行大量I / O时，在某些Linux配置中，</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> Redis可能会阻塞太长时间fsync（）调用。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 请注意，目前没有对此进行修复，</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 因为即使在不同的线程中执行fsync也会阻止我们的同步write（2）调用。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> In order to mitigate this problem it<span class="string">'s possible to use the following option</span></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> that will prevent fsync() from being called <span class="keyword">in</span> the main process <span class="keyword">while</span> a</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> BGSAVE or BGREWRITEAOF is <span class="keyword">in</span> progress.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 为了缓解此问题，可以使用以下选项，</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 以防止在BGSAVE或BGREWRITEAOF正在进行时在主进程中调用fsync（）。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> This means that <span class="keyword">while</span> another child is saving, the durability of Redis is</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> the same as <span class="string">"appendfsync none"</span>. In practical terms, this means that it is</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> possible to lose up to 30 seconds of <span class="built_in">log</span> <span class="keyword">in</span> the worst scenario (with the</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> default Linux settings).</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 这意味着当另一个孩子正在保存时，Redis的持久性与“appendfsync none”相同。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 实际上，这意味着在最糟糕的情况下（使用默认的Linux设置）可能会丢失最多30秒的日志。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> If you have latency problems turn this to <span class="string">"yes"</span>. Otherwise leave it as</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> <span class="string">"no"</span> that is the safest pick from the point of view of durability.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 如果您有延迟问题，请将其转为“是”。否则，从耐用性的角度来看，它是最“最安全”的选择。</span></span><br><span class="line"></span><br><span class="line">no-appendfsync-on-rewrite no</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> Automatic rewrite of the append only file.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> Redis is able to automatically rewrite the <span class="built_in">log</span> file implicitly calling</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> BGREWRITEAOF when the AOF <span class="built_in">log</span> size grows by the specified percentage.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 自动重写仅附加文件。当AOF日志大小增长指定的百分比时，</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> Redis能够自动重写日志文件，隐式调用BGREWRITEAOF。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> This is how it works: Redis remembers the size of the AOF file after the</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> latest rewrite (<span class="keyword">if</span> no rewrite has happened since the restart, the size of</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> the AOF at startup is used).</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 这是它的工作原理：Redis在最近的重写后记住AOF文件的大小</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> （如果重启后没有重写，则使用启动时的AOF大小）。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> This base size is compared to the current size. If the current size is</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> bigger than the specified percentage, the rewrite is triggered. Also</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> you need to specify a minimal size <span class="keyword">for</span> the AOF file to be rewritten, this</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> is useful to avoid rewriting the AOF file even <span class="keyword">if</span> the percentage increase</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> is reached but it is still pretty small.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 将此基本大小与当前大小进行比较。如果当前大小大于指定的百分比，则触发重写。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 此外，您需要指定要重写的AOF文件的最小大小，</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 这有助于避免重写AOF文件，即使达到百分比增加但仍然非常小。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> Specify a percentage of zero <span class="keyword">in</span> order to <span class="built_in">disable</span> the automatic AOF</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> rewrite feature.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 指定零的百分比以禁用自动AOF重写功能。</span></span><br><span class="line"></span><br><span class="line">auto-aof-rewrite-percentage 100</span><br><span class="line">auto-aof-rewrite-min-size 64mb</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> An AOF file may be found to be truncated at the end during the Redis</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> startup process, when the AOF data gets loaded back into memory.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> This may happen when the system <span class="built_in">where</span> Redis is running</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> crashes, especially when an ext4 filesystem is mounted without the</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> data=ordered option (however this can<span class="string">'t happen when Redis itself</span></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> crashes or aborts but the operating system still works correctly).</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 当AOF数据加载回内存时，可能会在Redis启动过程中发现AOF文件被截断。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 当Redis运行崩溃的系统时，尤其是在没有data = ordered选项的情况下挂载ext4文件系统时，</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 可能会发生这种情况（但是当Redis本身崩溃或中止但操作系统仍能正常工作时，这种情况不会发生）。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> Redis can either <span class="built_in">exit</span> with an error when this happens, or load as much</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> data as possible (the default now) and start <span class="keyword">if</span> the AOF file is found</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> to be truncated at the end. The following option controls this behavior.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 发生这种情况时，Redis可以退出，或者加载尽可能多的数据（现在是默认值），</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 如果发现AOF文件在末尾被截断，则启动。以下选项控制此行为。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> If aof-load-truncated is <span class="built_in">set</span> to yes, a truncated AOF file is loaded and</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> the Redis server starts emitting a <span class="built_in">log</span> to inform the user of the event.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> Otherwise <span class="keyword">if</span> the option is <span class="built_in">set</span> to no, the server aborts with an error</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> and refuses to start. When the option is <span class="built_in">set</span> to no, the user requires</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> to fix the AOF file using the <span class="string">"redis-check-aof"</span> utility before to restart</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> the server.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 如果将aof-load-truncated设置为yes，则会加载截断的AOF文件，</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 并且Redis服务器会开始发出日志以通知用户该事件。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 否则，如果该选项设置为no，则服务器将中止并显示错误并拒绝启动。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 当该选项设置为no时，用户需要使用“redis-check-aof”实用程序修复AOF文件，</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 然后才能重新启动服务器。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> Note that <span class="keyword">if</span> the AOF file will be found to be corrupted <span class="keyword">in</span> the middle</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> the server will still <span class="built_in">exit</span> with an error. This option only applies when</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> Redis will try to <span class="built_in">read</span> more data from the AOF file but not enough bytes</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> will be found.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 请注意，如果发现AOF文件在中间被破坏，服务器仍将退出并显示错误。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 此选项仅在Redis尝试从AOF文件中读取更多数据但不会找到足够的字节时适用。</span></span><br><span class="line"></span><br><span class="line">aof-load-truncated yes</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> When rewriting the AOF file, Redis is able to use an RDB preamble <span class="keyword">in</span> the</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> AOF file <span class="keyword">for</span> faster rewrites and recoveries. When this option is turned</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> on the rewritten AOF file is composed of two different stanzas:</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 重写AOF文件时，Redis能够使用AOF文件中的RDB前导码来加快重写和恢复速度。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 启用此选项后，重写的AOF文件由两个不同的节组成：</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash">   [RDB file][AOF tail]</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> When loading Redis recognizes that the AOF file starts with the <span class="string">"REDIS"</span></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> string and loads the prefixed RDB file, and continues loading the AOF</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> tail.</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 加载时Redis识别出AOF文件以“REDIS”字符串开头并加载前缀RDB文件，并继续加载AOF尾部。</span></span><br><span class="line"></span><br><span class="line">aof-use-rdb-preamble yes</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/blog/tags/redis/" rel="tag"># redis</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/blog/2018/11/12/设计模式-单例【Single】/" rel="next" title="设计模式-单例【Single】">
+                <i class="fa fa-chevron-left"></i> 设计模式-单例【Single】
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="lv-container" data-id="city" data-uid="MTAyMC8zOTU5Mi8xNjExOQ=="></div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/blog/images/avatar.JPG"
+                alt="那天晴、" />
+            
+              <p class="site-author-name" itemprop="name">那天晴、</p>
+              <p class="site-description motion-element" itemprop="description">做自己该做的，做自己想做的，每天进步一点点足以</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/blog/archives/">
+              
+                  <span class="site-state-item-count">19</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/blog/categories/index.html">
+                  <span class="site-state-item-count">6</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/blog/tags/index.html">
+                  <span class="site-state-item-count">6</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="https://github.com/wangypeng" target="_blank" title="GitHub">
+                      
+                        <i class="fa fa-fw fa-github"></i>GitHub</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="mailto:619938467@qq.com" target="_blank" title="E-Mail">
+                      
+                        <i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#介绍"><span class="nav-number">1.</span> <span class="nav-text">介绍</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#SNAPSHOTTING-rdb-redis-database"><span class="nav-number">2.</span> <span class="nav-text">SNAPSHOTTING rdb(redis database)</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#介绍-1"><span class="nav-number">2.1.</span> <span class="nav-text">介绍</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#相关命令"><span class="nav-number">2.2.</span> <span class="nav-text">相关命令</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#恢复"><span class="nav-number">2.3.</span> <span class="nav-text">恢复</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#配置"><span class="nav-number">2.4.</span> <span class="nav-text">配置</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#APPEND-ONLY-MODE-aof-append-of-only"><span class="nav-number">3.</span> <span class="nav-text">APPEND ONLY MODE aof(append of only)</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#介绍-2"><span class="nav-number">3.1.</span> <span class="nav-text">介绍</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#相关命令-1"><span class="nav-number">3.2.</span> <span class="nav-text">相关命令</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#恢复-1"><span class="nav-number">3.3.</span> <span class="nav-text">恢复</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#配置-1"><span class="nav-number">3.4.</span> <span class="nav-text">配置</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">那天晴、</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/blog/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/blog/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/blog/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/blog/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/blog/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/blog/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/blog/lib/three/three.min.js"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/blog/lib/three/canvas_lines.min.js"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/blog/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/blog/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/blog/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/blog/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/blog/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/blog/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/blog/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+    <script type="text/javascript">
+      (function(d, s) {
+        var j, e = d.getElementsByTagName(s)[0];
+        if (typeof LivereTower === 'function') { return; }
+        j = d.createElement(s);
+        j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+        j.async = true;
+        e.parentNode.insertBefore(j, e);
+      })(document, 'script');
+    </script>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/blog/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

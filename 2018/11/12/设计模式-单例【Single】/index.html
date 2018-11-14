@@ -79,19 +79,19 @@
 
 
 
-<meta name="description" content="模版方法，父类定义模版方法，子类重写抽象和钩子方法。">
+<meta name="description" content="单例，只new一次对象，全局只有一个对象实例。">
 <meta name="keywords" content="设计模式">
 <meta property="og:type" content="article">
 <meta property="og:title" content="设计模式-单例【Single】">
 <meta property="og:url" content="https://wangypeng.github.io/blog/2018/11/12/设计模式-单例【Single】/index.html">
 <meta property="og:site_name" content="peng&#39;s blog">
-<meta property="og:description" content="模版方法，父类定义模版方法，子类重写抽象和钩子方法。">
+<meta property="og:description" content="单例，只new一次对象，全局只有一个对象实例。">
 <meta property="og:locale" content="zh-Hans">
 <meta property="og:image" content="https://wangypeng.github.io/blog/2018/11/12/设计模式-单例【Single】/img/index-page-img/设计模式.png">
-<meta property="og:updated_time" content="2018-11-12T12:04:13.346Z">
+<meta property="og:updated_time" content="2018-11-12T12:38:59.215Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="设计模式-单例【Single】">
-<meta name="twitter:description" content="模版方法，父类定义模版方法，子类重写抽象和钩子方法。">
+<meta name="twitter:description" content="单例，只new一次对象，全局只有一个对象实例。">
 <meta name="twitter:image" content="https://wangypeng.github.io/blog/2018/11/12/设计模式-单例【Single】/img/index-page-img/设计模式.png">
 
 
@@ -383,7 +383,7 @@
 
       
         <p><img src="img/index-page-img/设计模式.png" alt=""></p>
-<p>模版方法，父类定义模版方法，子类重写抽象和钩子方法。</p>
+<p>单例，只new一次对象，全局只有一个对象实例。</p>
 <a id="more"></a>
 <h3 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h3><p>单例，在日常开发中，可以说的最常用的。应用的很广泛，也有很多不同的实现。全局只有一个类实例。</p>
 <h3 id="特点"><a href="#特点" class="headerlink" title="特点"></a>特点</h3><p>1.构造函数私有，不能使用 new 直接创建对象。</p>
@@ -395,13 +395,44 @@
 <li><p>静态：并不能持有状态，线程安全，并在是类加载的时候，就实例了。</p>
 </li>
 </ul>
-<h3 id="写法"><a href="#写法" class="headerlink" title="写法"></a>写法</h3><p>饿汉模式(推荐)</p>
-<ol>
-<li><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Singleton</span> &#123;</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">static</span> Singleton instance=<span class="keyword">new</span> Singleton();</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="keyword">private</span> <span class="title">Singleton</span><span class="params">()</span></span>&#123;&#125;;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Singleton <span class="title">getInstance</span><span class="params">()</span></span>&#123;</span><br><span class="line">		<span class="keyword">return</span> instance;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h3 id="写法"><a href="#写法" class="headerlink" title="写法"></a>写法</h3><h4 id="饿汉模式-推荐"><a href="#饿汉模式-推荐" class="headerlink" title="饿汉模式(推荐)"></a>饿汉模式(推荐)</h4><ol>
+<li><p>静态变量</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Singleton</span> &#123;</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">static</span> Singleton instance=<span class="keyword">new</span> Singleton();</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="keyword">private</span> <span class="title">Singleton</span><span class="params">()</span></span>&#123;&#125;;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Singleton <span class="title">getInstance</span><span class="params">()</span></span>&#123;</span><br><span class="line">		<span class="keyword">return</span> instance;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
 </li>
-<li><figure class="highlight routeros"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">public class Singleton&#123;</span><br><span class="line"> </span><br><span class="line">	private static Singleton<span class="built_in"> instance </span>= <span class="literal">null</span>;</span><br><span class="line">		</span><br><span class="line">	static &#123;</span><br><span class="line">	<span class="built_in">	instance </span>= new Singleton();</span><br><span class="line">	&#125;</span><br><span class="line">	 </span><br><span class="line">	private Singleton() &#123;&#125;;</span><br><span class="line">	 </span><br><span class="line">	public static Singleton getInstance() &#123;</span><br><span class="line">		return instance;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<li><p>静态块</p>
+<figure class="highlight routeros"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">public class Singleton&#123;</span><br><span class="line"> </span><br><span class="line">	private static Singleton<span class="built_in"> instance </span>= <span class="literal">null</span>;</span><br><span class="line">		</span><br><span class="line">	static &#123;</span><br><span class="line">	<span class="built_in">	instance </span>= new Singleton();</span><br><span class="line">	&#125;</span><br><span class="line">	 </span><br><span class="line">	private Singleton() &#123;&#125;</span><br><span class="line">	 </span><br><span class="line">	public static Singleton getInstance() &#123;</span><br><span class="line">		return instance;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 </li>
 </ol>
+<p><strong>优点</strong>：在类加载的时候，实例化，线程安全。</p>
+<p><strong>缺点</strong>：类加载的时候就实例了。所以这个实例，可能加载了也并不会被使用，会内存浪费。这个种浪费还是能接受的。</p>
+<h4 id="懒汉模式"><a href="#懒汉模式" class="headerlink" title="懒汉模式"></a>懒汉模式</h4><ol>
+<li>直接创建<figure class="highlight routeros"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">public class Singleton &#123;</span><br><span class="line">			 </span><br><span class="line">	private static Singleton <span class="attribute">instance</span>=<span class="literal">null</span>;</span><br><span class="line">	</span><br><span class="line">	private Singleton() &#123;&#125;;</span><br><span class="line">	</span><br><span class="line">	public static Singleton getInstance()&#123;</span><br><span class="line">		<span class="keyword">if</span>(<span class="attribute">instance</span>==null)&#123;</span><br><span class="line">			<span class="attribute">instance</span>=new Singleton();</span><br><span class="line">		&#125;</span><br><span class="line">		return instance;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p><strong>特点</strong>：非线程安全，可能两条线程请求，可能会创建两个实例。</p>
+<p><strong>不可用</strong></p>
+<ol start="2">
+<li>方法加锁<figure class="highlight routeros"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">public class Singleton &#123;</span><br><span class="line"> </span><br><span class="line">	private static Singleton <span class="attribute">instance</span>=<span class="literal">null</span>;</span><br><span class="line">	</span><br><span class="line">	private Singleton() &#123;&#125;;</span><br><span class="line">	</span><br><span class="line">	public static synchronized Singleton getInstance()&#123;</span><br><span class="line">		<span class="keyword">if</span>(<span class="attribute">instance</span>==null)&#123;</span><br><span class="line">			<span class="attribute">instance</span>=new Singleton();</span><br><span class="line">		&#125;</span><br><span class="line">		return instance;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p><strong>特点</strong>：线程安全，但是性能低下，多线程访问，效率低。</p>
+<p><strong>不可用</strong></p>
+<ol start="3">
+<li>创建时加锁<figure class="highlight routeros"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">public class Singleton &#123;</span><br><span class="line"> </span><br><span class="line">	private static Singleton <span class="attribute">instance</span>=<span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line">	private Singleton() &#123;&#125;;</span><br><span class="line">	</span><br><span class="line">	public static Singleton getInstance() &#123;</span><br><span class="line">		<span class="keyword">if</span> (instance == <span class="literal">null</span>) &#123;</span><br><span class="line">			synchronized (Singleton.class) &#123;</span><br><span class="line">			<span class="built_in">	instance </span>= new Singleton();</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		return instance;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p><strong>特点</strong>：非线程安全，两条线程进入if判断，进入synchronized执行。两个线程都会执行，并且都会创建对象</p>
+<p><strong>不可用</strong></p>
+<ol start="4">
+<li>加锁双重验证<figure class="highlight routeros"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">public class Singleton &#123;</span><br><span class="line">	</span><br><span class="line">	private static Singleton <span class="attribute">instance</span>=<span class="literal">null</span>;</span><br><span class="line">	</span><br><span class="line">	private Singleton() &#123;&#125;;</span><br><span class="line">	</span><br><span class="line">	public static Singleton getInstance()&#123;</span><br><span class="line">		 <span class="keyword">if</span> (instance == <span class="literal">null</span>) &#123;  </span><br><span class="line">	          synchronized (Singleton.class) &#123;  </span><br><span class="line">	              <span class="keyword">if</span> (instance == <span class="literal">null</span>) &#123;  </span><br><span class="line">	            	 <span class="built_in"> instance </span>= new Singleton();  </span><br><span class="line">	              &#125;  </span><br><span class="line">	          &#125;  </span><br><span class="line">	      &#125;  </span><br><span class="line">	      return<span class="built_in"> instance; </span> </span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<strong>特点</strong>：线程安全。双重校验，保证了线程安全和效率。懒汉中</li>
+</ol>
+<p><strong>推荐</strong></p>
+<h4 id="内部类"><a href="#内部类" class="headerlink" title="内部类"></a>内部类</h4><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Singleton</span>&#123;</span></span><br><span class="line">			</span><br><span class="line">	<span class="function"><span class="keyword">private</span> <span class="title">Singleton</span><span class="params">()</span> </span>&#123;&#125;;</span><br><span class="line">	</span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">SingletonHolder</span>&#123;</span></span><br><span class="line">		<span class="keyword">private</span> <span class="keyword">static</span> Singleton instance=<span class="keyword">new</span> Singleton();</span><br><span class="line">	&#125; </span><br><span class="line">	</span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Singleton <span class="title">getInstance</span><span class="params">()</span></span>&#123;</span><br><span class="line">		<span class="keyword">return</span> SingletonHolder.instance;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>特点</strong>：线程安全，延时加载，在调用的时候才加载。效率高</p>
+<h4 id="枚举"><a href="#枚举" class="headerlink" title="枚举"></a>枚举</h4><figure class="highlight oxygene"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">enum</span> SingletonEnum <span class="comment">&#123;</span></span><br><span class="line"><span class="comment">	</span></span><br><span class="line"><span class="comment">	 instance; </span></span><br><span class="line"><span class="comment">	 </span></span><br><span class="line"><span class="comment">	 private SingletonEnum() &#123;&#125;</span></span><br><span class="line">	 </span><br><span class="line">	 <span class="keyword">public</span> void <span class="function"><span class="keyword">method</span><span class="params">()</span><span class="comment">&#123;</span></span></span><br><span class="line"><span class="function"><span class="comment"></span></span></span><br><span class="line"><span class="function"><span class="comment">	 &#125;</span></span></span><br><span class="line"><span class="function">&#125;</span></span><br></pre></td></tr></table></figure>
+<p><strong>特点</strong>：借助JDK1.5中添加的枚举来实现单例模式。不仅能避免多线程同步问题，而且还能防止反序列化重新创建新的对象。代码也非常简单，实在无法不用。这也是新版的《Effective Java》中推荐的模式。</p>
+<h3 id="源码地址："><a href="#源码地址：" class="headerlink" title="源码地址："></a>源码地址：</h3><p><a><a href="https://github.com/wangypeng/java-design-mode-source/tree/master/single" target="_blank" rel="noopener">https://github.com/wangypeng/java-design-mode-source/tree/master/single</a></a></p>
 
       
     </div>
@@ -441,6 +472,10 @@
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
+            
+              <a href="/blog/2018/11/13/redis-持久化/" rel="prev" title="redis-持久化">
+                redis-持久化 <i class="fa fa-chevron-right"></i>
+              </a>
             
           </div>
         </div>
@@ -526,7 +561,7 @@
               
                 <a href="/blog/archives/">
               
-                  <span class="site-state-item-count">18</span>
+                  <span class="site-state-item-count">19</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -537,7 +572,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/blog/categories/index.html">
-                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-count">6</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -548,7 +583,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/blog/tags/index.html">
-                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-count">6</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
@@ -597,7 +632,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#介绍"><span class="nav-number">1.</span> <span class="nav-text">介绍</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#特点"><span class="nav-number">2.</span> <span class="nav-text">特点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#单例与静态"><span class="nav-number">3.</span> <span class="nav-text">单例与静态</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#写法"><span class="nav-number">4.</span> <span class="nav-text">写法</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#介绍"><span class="nav-number">1.</span> <span class="nav-text">介绍</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#特点"><span class="nav-number">2.</span> <span class="nav-text">特点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#单例与静态"><span class="nav-number">3.</span> <span class="nav-text">单例与静态</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#写法"><span class="nav-number">4.</span> <span class="nav-text">写法</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#饿汉模式-推荐"><span class="nav-number">4.1.</span> <span class="nav-text">饿汉模式(推荐)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#懒汉模式"><span class="nav-number">4.2.</span> <span class="nav-text">懒汉模式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#内部类"><span class="nav-number">4.3.</span> <span class="nav-text">内部类</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#枚举"><span class="nav-number">4.4.</span> <span class="nav-text">枚举</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#源码地址："><span class="nav-number">5.</span> <span class="nav-text">源码地址：</span></a></li></ol></div>
             
 
           </div>
