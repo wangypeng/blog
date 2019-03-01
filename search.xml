@@ -1,6 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title><![CDATA[redis-事务]]></title>
+    <url>%2Fblog%2F2018%2F11%2F14%2Fredis-%E4%BA%8B%E5%8A%A1%2F</url>
+    <content type="text"><![CDATA[redis两种持久化的方式，rdb(redis database)和aof(append of only)。 实现方式redis的事务，并不像mysql有那么强的事务。redis实现是通过队列的方式，将所有的命令打包成一个队列，一起执行，不可拆分。不支持回滚。 特点 支持rollbakck：mysql的事务是commit和rollback，redis是不支持回滚的。执行了命令，就无法撤回了。在事务excu之前，可以使用discard撤销事务。 没有mysql负责的事务隔离机制。只有执行和未执行。 配合watch命令一起使用，可以某些值做监控，如果值变化了，那么在执行的时候会失败。没有变化执行成功。 开启事务后，执行的命令只会校验语法，并不会检查命令最终执行的时候是否正确，举个栗子：一个key的值是一个数组，却incr这个key，命令写入队列的时候，并不会报错，只有在excu的时候，才会报错。并且这条命令之前的命令不会回滚。 事务的执行流程开启事务MULTI 命令的执行标记着事务的开始： redis> MULTI OK #### 命令入队 当客户端处于非事务状态下时， 所有发送给服务器端的命令都会立即被服务器执行： redis> SET msg "hello moto" OK redis> GET msg "hello moto" 但是， 当客户端进入事务状态之后， 服务器在收到来自客户端的命令时， 不会立即执行命令， 而是将这些命令全部放进一个事务队列里， 然后返回 QUEUED ， 表示命令已入队： redis> MULTI OK redis> SET msg "hello moto" QUEUED redis> GET msg QUEUED 注意：命令入队，只会校验命令语法的准确性，不会真正的执行，所以入队的命令还是可能会执行出错的。出错之前的命令不会回滚。 执行事务当客户端进入事务状态之后， 客户端发送的命令就会被放进事务队列里。 但其实并不是所有的命令都会被放进事务队列， 其中的例外就是 EXEC 、 DISCARD 、 MULTI 和 WATCH 这四个命令 —— 当这四个命令从客户端发送到服务器时， 它们会像客户端处于非事务状态一样， 直接被服务器执行： TODO：执行图片 如果客户端正处于事务状态， 那么当 EXEC 命令执行时， 服务器根据客户端所保存的事务队列， 以先进先出（FIFO）的方式执行事务队列中的命令： 最先入队的命令最先执行， 而最后入队的命令最后执行。 事务状态下的 DISCARD 、 MULTI 和 WATCH 命令除了 EXEC 之外， 服务器在客户端处于事务状态时， 不加入到事务队列而直接执行的另外三个命令是 DISCARD 、 MULTI 和 WATCH 。 DISCARD 命令用于取消一个事务， 它清空客户端的整个事务队列， 然后将客户端从事务状态调整回非事务状态， 最后返回字符串 OK 给客户端， 说明事务已被取消。 Redis 的事务是不可嵌套的， 当客户端已经处于事务状态， 而客户端又再向服务器发送 MULTI 时， 服务器只是简单地向客户端发送一个错误， 然后继续等待其他命令的入队。 MULTI 命令的发送不会造成整个事务失败， 也不会修改事务队列中已有的数据。 WATCH 只能在客户端进入事务状态之前执行， 在事务状态下发送 WATCH 命令会引发一个错误， 但它不会造成整个事务失败， 也不会修改事务队列中已有的数据（和前面处理 MULTI 的情况一样）。 带 WATCH 的事务WATCH 命令用于在事务开始之前监视任意数量的键： 当调用 EXEC 命令执行事务时， 如果任意一个被监视的键已经被其他客户端修改了， 那么整个事务不再执行， 直接返回失败。 以下示例展示了一个执行失败的事务例子： redis> WATCH name OK redis> MULTI OK redis> SET name peter QUEUED redis> EXEC (nil) 事务的 ACID 性质原子性（Atomicity)单个 Redis 命令的执行是原子性的，但 Redis 没有在事务上增加任何维持原子性的机制，所以 Redis 事务的执行并不是原子性的。 如果一个事务队列中的所有命令都被成功地执行，那么称这个事务执行成功。 另一方面，如果 Redis 服务器进程在执行事务的过程中被停止 —— 比如接到 KILL 信号、宿主机器停机，等等，那么事务执行失败。 当事务失败时，Redis 也不会进行任何的重试或者回滚动作。 一致性（Consistency）入队错误 在命令入队的过程中，如果客户端向服务器发送了错误的命令，比如命令的参数数量不对，等等， 那么服务器将向客户端返回一个出错信息， 并且将客户端的事务状态设为 REDIS_DIRTY_EXEC 。 当客户端执行 EXEC 命令时， Redis 会拒绝执行状态为 REDIS_DIRTY_EXEC 的事务， 并返回失败信息。 redis 127.0.0.1:6379> MULTI OK redis 127.0.0.1:6379> set key (error) ERR wrong number of arguments for 'set' command redis 127.0.0.1:6379> EXISTS key QUEUED redis 127.0.0.1:6379> EXEC (error) EXECABORT Transaction discarded because of previous errors. 因此，带有不正确入队命令的事务不会被执行，也不会影响数据库的一致性。 执行错误 如果命令在事务执行的过程中发生错误，比如说，对一个不同类型的 key 执行了错误的操作， 那么 Redis 只会将错误包含在事务的结果中， 这不会引起事务中断或整个失败，不会影响已执行事务命令的结果，也不会影响后面要执行的事务命令， 所以它对事务的一致性也没有影响。 Redis 进程被终结 如果 Redis 服务器进程在执行事务的过程中被其他进程终结，或者被管理员强制杀死，那么根据 Redis 所使用的持久化模式，可能有以下情况出现： 内存模式：如果 Redis 没有采取任何持久化机制，那么重启之后的数据库总是空白的，所以数据总是一致的。 RDB 模式：在执行事务时，Redis 不会中断事务去执行保存 RDB 的工作，只有在事务执行之后，保存 RDB 的工作才有可能开始。所以当 RDB 模式下的 Redis 服务器进程在事务中途被杀死时，事务内执行的命令，不管成功了多少，都不会被保存到 RDB 文件里。恢复数据库需要使用现有的 RDB 文件，而这个 RDB 文件的数据保存的是最近一次的数据库快照（snapshot），所以它的数据可能不是最新的，但只要 RDB 文件本身没有因为其他问题而出错，那么还原后的数据库就是一致的。 AOF 模式：因为保存 AOF 文件的工作在后台线程进行，所以即使是在事务执行的中途，保存 AOF 文件的工作也可以继续进行，因此，根据事务语句是否被写入并保存到 AOF 文件，有以下两种情况发生： 如果事务语句未写入到 AOF 文件，或 AOF 未被 SYNC 调用保存到磁盘，那么当进程被杀死之后，Redis 可以根据最近一次成功保存到磁盘的 AOF 文件来还原数据库，只要 AOF 文件本身没有因为其他问题而出错，那么还原后的数据库总是一致的，但其中的数据不一定是最新的。 如果事务的部分语句被写入到 AOF 文件，并且 AOF 文件被成功保存，那么不完整的事务执行信息就会遗留在 AOF 文件里，当重启 Redis 时，程序会检测到 AOF 文件并不完整，Redis 会退出，并报告错误。需要使用 redis-check-aof 工具将部分成功的事务命令移除之后，才能再次启动服务器。还原之后的数据总是一致的，而且数据也是最新的（直到事务执行之前为止）。 隔离性（Isolation）Redis 是单进程程序，并且它保证在执行事务时，不会对事务进行中断，事务可以运行直到执行完所有事务队列中的命令为止。因此，Redis 的事务是总是带有隔离性的。 持久性（Durability）因为事务不过是用队列包裹起了一组 Redis 命令，并没有提供任何额外的持久性功能，所以事务的持久性由 Redis 所使用的持久化模式决定： 在单纯的内存模式下，事务肯定是不持久的。 在 RDB 模式下，服务器可能在事务执行之后、RDB 文件更新之前的这段时间失败，所以 RDB 模式下的 Redis 事务也是不持久的。 在 AOF 的“总是 SYNC ”模式下，事务的每条命令在执行成功之后，都会立即调用 fsync 或 fdatasync 将事务数据写入到 AOF 文件。但是，这种保存是由后台线程进行的，主线程不会阻塞直到保存成功，所以从命令执行成功到数据保存到硬盘之间，还是有一段非常小的间隔，所以这种模式下的事务也是不持久的。 其他 AOF 模式也和“总是 SYNC ”模式类似，所以它们都是不持久的。 引用文章地址：https://redisbook.readthedocs.io/en/latest/feature/transaction.html#durability]]></content>
+      <categories>
+        <category>redis</category>
+      </categories>
+      <tags>
+        <tag>redis</tag>
+      </tags>
+  </entry>
+  <entry>
     <title><![CDATA[redis-持久化]]></title>
     <url>%2Fblog%2F2018%2F11%2F13%2Fredis-%E6%8C%81%E4%B9%85%E5%8C%96%2F</url>
     <content type="text"><![CDATA[redis两种持久化的方式，rdb(redis database)和aof(append of only) 介绍redis 是一个键值对存储数据库,基于内存存储,相对于传统基于磁盘做持久化的数据库,操作内存速度更快。所以也用来做缓存服务器。相对于memcache,redis提供了持久化的解决方案，数据安全性更高。redis提供的两种持久化方案，一个rdb(redis database)，一个是aof(append of only),本文将详细介绍这两种持久化。 SNAPSHOTTING rdb(redis database)介绍rdb就是将redis内存中的数据做一个快照，经过压缩，以二进制文件的形式，保存到磁盘中。 默认情况下，Redis以异步方式将数据集转储到磁盘上 相关命令 SAVE：阻塞redis的服务器进程，直到RDB文件被创建完毕。 BGSAVE：派生(fork)一个子进程来创建新的RDB文件，记录接收到BGSAVE当时的数据库状态，父进程继续处理接收到的命令，子进程完成文件的创建之后，会发送信号给父进程，而与此同时，父进程处理命令的同时，通过轮询来接收子进程的信号。 恢复在redis启动的时候，会检查是否rdb的二进制文件。有二进制文件，直接将文件拉取到内存中。恢复速度很快。 配置123456789101112131415161718192021222324252627282930313233343536373839404142434445464748495051525354555657585960616263646566676869707172737475767778798081828384858687888990919293949596979899100101102103104105106################################ SNAPSHOTTING ################################## Save the DB on disk:## save &lt;seconds&gt; &lt;changes&gt;## Will save the DB if both the given number of seconds and the given# number of write operations against the DB occurred.## 如果同时发生了给定的秒数和针对DB的给定写入操作数，则将保存数据库。## In the example below the behaviour will be to save:# after 900 sec (15 min) if at least 1 key changed# after 300 sec (5 min) if at least 10 keys changed# after 60 sec if at least 10000 keys changed## 在下面的示例中，行为将是保存：# 900秒后（15分钟）1个key改变# 300秒后 (5分钟) 10个key改变# 60秒后 10000 个key改变# ## Note: you can disable saving completely by commenting out all "save" lines.## 注意：您可以通过注释掉所有“保存”行来完全禁用保存。## It is also possible to remove all the previously configured save# points by adding a save directive with a single empty string argument# like in the following example:## save ""## 也可以通过添加带有单个空字符串参数的save指令来删除所有先前配置的保存点save 900 1save 300 10save 60 10000# By default Redis will stop accepting writes if RDB snapshots are enabled# (at least one save point) and the latest background save failed.# This will make the user aware (in a hard way) that data is not persisting# on disk properly, otherwise chances are that no one will notice and some# disaster will happen.## 默认情况下，如果启用了RDB快照（至少一个保存点）并且最新的后台保存失败，Redis将停止接受写入。# 这将使用户意识到（以一种困难的方式）数据没有正确地保存在磁盘上，# 否则很可能没有人会注意到并且会发生一些灾难。## If the background saving process will start working again Redis will# automatically allow writes again.## 如果后台保存过程将再次开始工作，Redis将自动再次允许写入。## However if you have setup your proper monitoring of the Redis server# and persistence, you may want to disable this feature so that Redis will# continue to work as usual even if there are problems with disk,# permissions, and so forth.## 但是，如果您已设置对Redis服务器和持久性的正确监视，则可能需要禁用此功能# 以便即使磁盘，权限等存在问题，Redis也将继续正常工作。stop-writes-on-bgsave-error yes# Compress string objects using LZF when dump .rdb databases?# For default that's set to 'yes' as it's almost always a win.# If you want to save some CPU in the saving child set it to 'no' but# the dataset will likely be bigger if you have compressible values or keys.## 当备份.rdb数据库时使用LZF压缩字符串对象？默认设置为“是”，因为它几乎总是一个胜利。# 如果要在保存子项中保存一些CPU，请将其设置为“否”，但如果您具有可压缩值或键，则数据集可能会更大。rdbcompression yes# Since version 5 of RDB a CRC64 checksum is placed at the end of the file.# This makes the format more resistant to corruption but there is a performance# hit to pay (around 10%) when saving and loading RDB files, so you can disable it# for maximum performances.## 从RDB的第5版开始，CRC64校验和被放置在文件的末尾。这使得格式更能抵抗损坏，# 但在保存和加载RDB文件时需要支付性能（大约10％），因此您可以禁用它以获得最佳性能。## RDB files created with checksum disabled have a checksum of zero that will# tell the loading code to skip the check.## 禁用校验和创建的RDB文件的校验和为零，将告诉加载代码跳过检查。rdbchecksum yes# The filename where to dump the DB##rdb dump 文件名dbfilename dump.rdb# The working directory.## The DB will be written inside this directory, with the filename specified# above using the 'dbfilename' configuration directive.## The Append Only File will also be created inside this directory.## Note that you must specify a directory here, not a file name.## 文件位置dir ./ APPEND ONLY MODE aof(append of only)介绍如果rdb过程中，机器出了问题，可能会丢失几分钟的数据。 aof功能类似于日志，会对每一条记录做记录，三种持久化的方案： 每条记录都记录，但是会占用大量io，会把服务器拖慢 每秒钟的数据写入磁盘，将一秒钟的数据写入磁盘，可能会丢失一秒钟的数据（官方默认的方案） 不写入，只有命令执行的时候，才写入，会有很好的性能，但是丢失数据的风险非常大。 aof每条都记录，随着一直写入request，会导致aof文件会越来越大，并且在恢复的时候，每条都会执行可以使用aof重写，可以多条记录逆为一条命令，减小文件大小 例子：12345678// 重写前set wang 100incr wang incr wnag// 重写后,逆为key最后的状态值set wang 102bg 相关命令 bgrewriteao：重写aof文件 恢复在开启aof持久化的时候，会监测是否有aof文件，优先加载aof文件，然后在监测rdb文件。 重写后的aof文件更便于恢复，不用每条都写入，直接写入最后的状态值。 配置123456789101112131415161718192021222324252627282930313233343536373839404142434445464748495051525354555657585960616263646566676869707172737475767778798081828384858687888990919293949596979899100101102103104105106107108109110111112113114115116117118119120121122123124125126127128129130131132133134135136137138139140141142143144145146147148149150151152153154155156157158159160161162163164165166167168169170171172173174175176177178179180181182183184185186187188189190191192193194195196197198199200201202203204############################## APPEND ONLY MODE ################################# By default Redis asynchronously dumps the dataset on disk. This mode is# good enough in many applications, but an issue with the Redis process or# a power outage may result into a few minutes of writes lost (depending on# the configured save points).## 默认情况下，Redis以异步方式将数据集转储到磁盘上。# 此模式在许多应用程序中都足够好，# 但Redis进程或停电的问题可能导致几分钟的写入丢失（取决于配置的保存点）。## The Append Only File is an alternative persistence mode that provides# much better durability. For instance using the default data fsync policy# (see later in the config file) Redis can lose just one second of writes in a# dramatic event like a server power outage, or a single write if something# wrong with the Redis process itself happens, but the operating system is# still running correctly.## 仅附加文件是一种备用持久性模式，可提供更好的持久性。# 例如，使用默认数据fsync策略（请参阅配置文件中的后面部分）# Redis在服务器断电等戏剧性事件中只会丢失一秒写入，# 如果Redis进程本身出现问题，则会丢失一次，但是操作系统仍然正常运行。## AOF and RDB persistence can be enabled at the same time without problems.# If the AOF is enabled on startup Redis will load the AOF, that is the file# with the better durability guarantees.## 可以同时启用AOF和RDB持久性而不会出现问题。# 如果在启动时启用AOF，Redis将加载AOF，即具有更好耐久性保证的文件。## Please check http://redis.io/topics/persistence for more information.appendonly no# The name of the append only file (default: "appendonly.aof")appendfilename "appendonly.aof"# The fsync() call tells the Operating System to actually write data on disk# instead of waiting for more data in the output buffer. Some OS will really flush# data on disk, some other OS will just try to do it ASAP.## aof调用告诉操作系统实际在磁盘上写入数据，# 而不是等待输出缓冲区中的更多数据。# 某些操作系统会真正刷新磁盘上的数据，其他一些操作系统会尽快尝试这样做。## Redis supports three different modes:## no: don't fsync, just let the OS flush the data when it wants. Faster.# always: fsync after every write to the append only log. Slow, Safest.# everysec: fsync only one time every second. Compromise.## no：不要fsync，只需让操作系统在需要时刷新数据。# 快点。始终：每次写入仅附加日志后的fsync。慢，最安全。# everysec：fsync每秒只有一次。妥协。## The default is "everysec", as that's usually the right compromise between# speed and data safety. It's up to you to understand if you can relax this to# "no" that will let the operating system flush the output buffer when# it wants, for better performances (but if you can live with the idea of# some data loss consider the default persistence mode that's snapshotting),# or on the contrary, use "always" that's very slow but a bit safer than# everysec.## 默认值为“everysec”，因为这通常是速度和数据安全之间的正确折衷。# 这取决于你是否可以理解你是否可以放松这个“不”，# 让操作系统在需要时刷新输出缓冲区，以获得更好的性能# （但如果你能想到一些数据丢失的想法，请考虑默认的持久性模式这是快照），# 或相反，使用“总是”，这是非常慢但比每秒更安全。## More details please check the following article:# http://antirez.com/post/redis-persistence-demystified.html## If unsure, use "everysec".# appendfsync alwaysappendfsync everysec# appendfsync no# When the AOF fsync policy is set to always or everysec, and a background# saving process (a background save or AOF log background rewriting) is# performing a lot of I/O against the disk, in some Linux configurations# Redis may block too long on the fsync() call. Note that there is no fix for# this currently, as even performing fsync in a different thread will block# our synchronous write(2) call.## 当AOF fsync策略设置为always或everysec，# 并且后台保存过程（后台保存或AOF日志后台重写）# 正在对磁盘执行大量I / O时，在某些Linux配置中，# Redis可能会阻塞太长时间fsync（）调用。# 请注意，目前没有对此进行修复，# 因为即使在不同的线程中执行fsync也会阻止我们的同步write（2）调用。## In order to mitigate this problem it's possible to use the following option# that will prevent fsync() from being called in the main process while a# BGSAVE or BGREWRITEAOF is in progress.## 为了缓解此问题，可以使用以下选项，# 以防止在BGSAVE或BGREWRITEAOF正在进行时在主进程中调用fsync（）。## This means that while another child is saving, the durability of Redis is# the same as "appendfsync none". In practical terms, this means that it is# possible to lose up to 30 seconds of log in the worst scenario (with the# default Linux settings).## 这意味着当另一个孩子正在保存时，Redis的持久性与“appendfsync none”相同。# 实际上，这意味着在最糟糕的情况下（使用默认的Linux设置）可能会丢失最多30秒的日志。## If you have latency problems turn this to "yes". Otherwise leave it as# "no" that is the safest pick from the point of view of durability.## 如果您有延迟问题，请将其转为“是”。否则，从耐用性的角度来看，它是最“最安全”的选择。no-appendfsync-on-rewrite no# Automatic rewrite of the append only file.# Redis is able to automatically rewrite the log file implicitly calling# BGREWRITEAOF when the AOF log size grows by the specified percentage.## 自动重写仅附加文件。当AOF日志大小增长指定的百分比时，# Redis能够自动重写日志文件，隐式调用BGREWRITEAOF。## This is how it works: Redis remembers the size of the AOF file after the# latest rewrite (if no rewrite has happened since the restart, the size of# the AOF at startup is used).## 这是它的工作原理：Redis在最近的重写后记住AOF文件的大小# （如果重启后没有重写，则使用启动时的AOF大小）。## This base size is compared to the current size. If the current size is# bigger than the specified percentage, the rewrite is triggered. Also# you need to specify a minimal size for the AOF file to be rewritten, this# is useful to avoid rewriting the AOF file even if the percentage increase# is reached but it is still pretty small.## 将此基本大小与当前大小进行比较。如果当前大小大于指定的百分比，则触发重写。# 此外，您需要指定要重写的AOF文件的最小大小，# 这有助于避免重写AOF文件，即使达到百分比增加但仍然非常小。## Specify a percentage of zero in order to disable the automatic AOF# rewrite feature.## 指定零的百分比以禁用自动AOF重写功能。auto-aof-rewrite-percentage 100auto-aof-rewrite-min-size 64mb# An AOF file may be found to be truncated at the end during the Redis# startup process, when the AOF data gets loaded back into memory.# This may happen when the system where Redis is running# crashes, especially when an ext4 filesystem is mounted without the# data=ordered option (however this can't happen when Redis itself# crashes or aborts but the operating system still works correctly).## 当AOF数据加载回内存时，可能会在Redis启动过程中发现AOF文件被截断。# 当Redis运行崩溃的系统时，尤其是在没有data = ordered选项的情况下挂载ext4文件系统时，# 可能会发生这种情况（但是当Redis本身崩溃或中止但操作系统仍能正常工作时，这种情况不会发生）。## Redis can either exit with an error when this happens, or load as much# data as possible (the default now) and start if the AOF file is found# to be truncated at the end. The following option controls this behavior.## 发生这种情况时，Redis可以退出，或者加载尽可能多的数据（现在是默认值），# 如果发现AOF文件在末尾被截断，则启动。以下选项控制此行为。## If aof-load-truncated is set to yes, a truncated AOF file is loaded and# the Redis server starts emitting a log to inform the user of the event.# Otherwise if the option is set to no, the server aborts with an error# and refuses to start. When the option is set to no, the user requires# to fix the AOF file using the "redis-check-aof" utility before to restart# the server.## 如果将aof-load-truncated设置为yes，则会加载截断的AOF文件，# 并且Redis服务器会开始发出日志以通知用户该事件。# 否则，如果该选项设置为no，则服务器将中止并显示错误并拒绝启动。# 当该选项设置为no时，用户需要使用“redis-check-aof”实用程序修复AOF文件，# 然后才能重新启动服务器。## Note that if the AOF file will be found to be corrupted in the middle# the server will still exit with an error. This option only applies when# Redis will try to read more data from the AOF file but not enough bytes# will be found.## 请注意，如果发现AOF文件在中间被破坏，服务器仍将退出并显示错误。# 此选项仅在Redis尝试从AOF文件中读取更多数据但不会找到足够的字节时适用。aof-load-truncated yes# When rewriting the AOF file, Redis is able to use an RDB preamble in the# AOF file for faster rewrites and recoveries. When this option is turned# on the rewritten AOF file is composed of two different stanzas:## 重写AOF文件时，Redis能够使用AOF文件中的RDB前导码来加快重写和恢复速度。# 启用此选项后，重写的AOF文件由两个不同的节组成：## [RDB file][AOF tail]## When loading Redis recognizes that the AOF file starts with the "REDIS"# string and loads the prefixed RDB file, and continues loading the AOF# tail.## 加载时Redis识别出AOF文件以“REDIS”字符串开头并加载前缀RDB文件，并继续加载AOF尾部。aof-use-rdb-preamble yes]]></content>
@@ -45,6 +56,17 @@
       </tags>
   </entry>
   <entry>
+    <title><![CDATA[docker-基础命令及使用]]></title>
+    <url>%2Fblog%2F2018%2F09%2F14%2Fdocker-%E5%9F%BA%E7%A1%80%E5%91%BD%E4%BB%A4%E5%8F%8A%E4%BD%BF%E7%94%A8%2F</url>
+    <content type="text"><![CDATA[docker基本使用 介绍docker最近这几年比较火，云计算，容器编排应用也越来月广，这一切的基础都是docker。所以介绍一下，docker的一些基本使用。 安装三种方式： 官网直接下载对应版本，但是没有vpn的小伙伴可能会很慢。 1https://docs.docker.com/ cli工具 1234// sudo brew install// linux yum install docker 国内阿里云，有安装包，需要登陆。 配置mac我使用的版本号：17.09docker默认是使用docker官网的dockerhub，没有vpn，可以使用阿里云的镜像。 配置步骤 打开Docker-&gt;Preferences-&gt;deamon Insecure registries配置:registry.mirrors.aliyuncs.com Registry mirrors配置自己的镜像加速器地址即可.重启docker生效使用淘宝的账号就行 登陆阿里的镜像库，可以直接将自己的制作的镜像push到镜像空间中12sudo docker login --username=xxxxregistry.cn-hangzhou.aliyuncs.com linux修改deamon.json配置文件，这个我没有实践，就不误人子弟了。可以去网上找，有很多详细的讲解。 使用 docker search 搜索命令名称 1docker search ubuntu 不是系统源镜像，例如java、node这样的镜像，镜像里面是有整套的环境，可以查看镜像dockerfile，查看镜像的内部环境 docker pull 镜像名称 直接从dockerhub 拉取镜像 1docker pull ubuntu 可以阿里镜像库，直接拉取镜像库的镜像，镜像需跟上url docker run 启动容器 1docker run option 参数如下: -i 以交互模式运行容器，通常与 -t 同时使用 -t 启动容器直接进入容器CLI，进入容器的伪输入终端 -d 容器后台运行 -h 指定容器的hostname -rm 容器推出后直接删除容器 -v /host_file:/container_file host_file为宿主机文件路径 /container_file为容器内部的映射的文件路 -p host_port:container_port host_port为宿主机端口，container_port为容器内部的端口 -P 是容器内部端口随机映射到主机的高端口，注：-p和-P设置完端口，可以使用docker ps -a查看容器的端口映射 –name containerName 指定容器的名称 资源限制参数： -e username=”ritchie” : 设置环境变量； -m :设置容器使用内存最大值； –cpuset=”0-2” : 绑定容器到指定CPU运行 docker stop containerID/containerName 停止容器，根据容器ID或者容器的名称 1docker stop mynode1 docker rm containerID/containerName 删除容器，根据容器的ID或者容器的名称 1docker rm containerID/containerName 快捷操作 docker rm docker ps -a -q 全部删除容器 docker rm $(docker ps -a -q) 一样是先查询全部的容器id再删除 docker rmi imagesID/imgeName 删除容器，根据镜像的ID或者镜像的名称在删除镜像的时候，要保证没有使用这个镜像的容器。会报image is being used by stopped container 2a248b9ad5976 docker ps [options]查询容器状态-a all 查看全部的镜像-l last 查看最后一个运行的镜像-q 只显示容器编号 docker commit 提交容器 docker inspect containerID 查看容器的相关参数1docker inspect --format '&#123;&#123; .NetworkSettings.IPAddress &#125;&#125;' containerID 查看全部的容器的ip]]></content>
+      <categories>
+        <category>docker</category>
+      </categories>
+      <tags>
+        <tag>docker</tag>
+      </tags>
+  </entry>
+  <entry>
     <title><![CDATA[设计模式-代理【Proxy】]]></title>
     <url>%2Fblog%2F2018%2F09%2F01%2F%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E4%BB%A3%E7%90%86%E3%80%90Proxy%E3%80%91%2F</url>
     <content type="text"><![CDATA[代理设计模式，代理目标，代替直接操作目标对象。 介绍代理设计模式，在日常开发中，还是很常用的。主要是代理一个类的方法，在代理类做一些其他的逻辑。也可以说是为目标类分担一部分工作。 UML 方法说明 Client:调用方，调用目标的方法的类。 Subject:主体，目标类和代理对象的实现的接口，为Proxy和RealSubject定义一致性接口。 Proxy:代理对象，持有目标类的对象实例，通过调用proxy持有的目标类对象间接调用RealSubject中的方法，在代理方法中做一些其他的逻辑，或者分担一些目标方法的任务。 RealSubject:真正调用被调用，被代理的对象。 Spring 中的两种代理方式spring的aop就是通过代理的方式实现方法的织入的，aop的实现方式有两种： jdk原生代理：jdk原生包中提供的功能。原生代理只能代理接口的实现类，通过反射的方式调用。 cglib代理：第三方的代理方式，这是一个生成代码的工具包，主要是通过继承的方式，生成目标对象的子类，从而代理目标方法，通过继承的方式实现。所以因为通过继承的方式实现，也就不能使用代理final class，其他的类都是能通过这种方式代理。 源码地址：https://github.com/wangypeng/java-design-mode-source/tree/master/proxy]]></content>
@@ -78,39 +100,6 @@
       </tags>
   </entry>
   <entry>
-    <title><![CDATA[volatile关键字]]></title>
-    <url>%2Fblog%2F2018%2F08%2F12%2Fvolatile%E5%85%B3%E9%94%AE%E5%AD%97%2F</url>
-    <content type="text"></content>
-      <categories>
-        <category>jvm</category>
-      </categories>
-      <tags>
-        <tag>jvm</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title><![CDATA[happen-before]]></title>
-    <url>%2Fblog%2F2018%2F08%2F12%2Fhappen-before%2F</url>
-    <content type="text"><![CDATA[heppen-before]]></content>
-      <categories>
-        <category>jvm</category>
-      </categories>
-      <tags>
-        <tag>jvm</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title><![CDATA[逃逸分析和栈上分配]]></title>
-    <url>%2Fblog%2F2018%2F08%2F12%2F%E9%80%83%E9%80%B8%E5%88%86%E6%9E%90%E5%92%8C%E6%A0%88%E4%B8%8A%E5%88%86%E9%85%8D%2F</url>
-    <content type="text"><![CDATA[逃逸分析和栈上分配]]></content>
-      <categories>
-        <category>jvm</category>
-      </categories>
-      <tags>
-        <tag>jvm</tag>
-      </tags>
-  </entry>
-  <entry>
     <title><![CDATA[设计模式-原型【Prototype】]]></title>
     <url>%2Fblog%2F2018%2F08%2F04%2F%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E5%8E%9F%E5%9E%8B%E3%80%90Prototype%E3%80%91%2F</url>
     <content type="text"><![CDATA[原型设计模式，实现clone接口，复制新对象。 介绍原型设计模式，还是挺重要的，在日常开发中，可能经常用到，但是我们都没有注意，或者是有些应该用原型而没有用。原型设计模式主要是通过复制的方式生成实力。 应用场景UML 方法说明Prototype(原型接口)：原型接口，用于定义原型类对象，定义clone方法，子类实现clone方法，接口对外提供clone方法。ConcretePrototype(具体实现类)：实现Prototype接口，并且实现clone方法。Client(客户端)：client通过接口调用clone，复制生成新的对象。 优缺点 优点:在复制对象的时候，不需要关系如何复制。 缺点:可能不同业务，实现方式并不满足。 拓展型完全和客户端解耦，client只是调用，并不需要关心，原型类对象的内部实现。并且，都是在单个对象中定义。指责单一。 代码地址:]]></content>
@@ -135,23 +124,12 @@
   <entry>
     <title><![CDATA[jvm工具-greys]]></title>
     <url>%2Fblog%2F2018%2F07%2F14%2Fjvm%E5%B7%A5%E5%85%B7-greys%2F</url>
-    <content type="text"><![CDATA[CAS 深入理解。 摘要最近在工作中，出现了一个接口请求时间较长的情况。但是我了解的java自带的工具，并不能很好的显示整个接口耗时的具体情况。最后也是在github上找到了一个阿里大神写的sh脚本，这个脚本，是用java写的，做了很好的classloader的隔离，并且，很轻量，占用资源很少，安装简便，耗时分析更佳之直观。 安装步骤 首先进入进入安装目录 安装 curl -sLk http://ompc.oss.aliyuncs.com/greys/install.sh|sh 开启greys服务 ./greys [@IP:PORT] 进入greys服务后，进行想要的操作，greys相关命令：如下命令说明help查看命令的帮助文档，每个命令和参数都有很详细的说明sc查看JVM已加载的类信息sm查看已加载的方法信息monitor方法执行监控trace渲染方法内部调用路径，并输出方法路径上的每个节点上耗时ptrace方强化版的trace命令。通过指定渲染路径，并可记录下路径中所有方法的入参、返值；与tt命令联动。watch方法执行数据观测tt方法执行数据的时空隧道，记录下指定方法每次调用的入参和返回信息，并能对这些不同的时间下调用进行观测stack输出当前方法被调用的调用路径version输出当前目标Java进程所加载的Greys版本号quit退出greys客户端shutdown关闭greys服务端reset重置增强类，将被greys增强过的类全部还原jvm查看当前JVM的信息 官方github:https://github.com/oldmanpushcart/greys-anatomy/wiki/Getting-Started]]></content>
+    <content type="text"><![CDATA[摘要最近在工作中，出现了一个接口请求时间较长的情况。但是我了解的java自带的工具，并不能很好的显示整个接口耗时的具体情况。最后也是在github上找到了一个阿里大神写的sh脚本，这个脚本，是用java写的，做了很好的classloader的隔离，并且，很轻量，占用资源很少，安装简便，耗时分析更佳之直观。 安装步骤 首先进入进入安装目录 安装 curl -sLk http://ompc.oss.aliyuncs.com/greys/install.sh|sh 开启greys服务 ./greys [@IP:PORT] 进入greys服务后，进行想要的操作，greys相关命令：如下命令说明help查看命令的帮助文档，每个命令和参数都有很详细的说明sc查看JVM已加载的类信息sm查看已加载的方法信息monitor方法执行监控trace渲染方法内部调用路径，并输出方法路径上的每个节点上耗时ptrace方强化版的trace命令。通过指定渲染路径，并可记录下路径中所有方法的入参、返值；与tt命令联动。watch方法执行数据观测tt方法执行数据的时空隧道，记录下指定方法每次调用的入参和返回信息，并能对这些不同的时间下调用进行观测stack输出当前方法被调用的调用路径version输出当前目标Java进程所加载的Greys版本号quit退出greys客户端shutdown关闭greys服务端reset重置增强类，将被greys增强过的类全部还原jvm查看当前JVM的信息 官方github:https://github.com/oldmanpushcart/greys-anatomy/wiki/Getting-Started]]></content>
       <categories>
         <category>jvm</category>
       </categories>
       <tags>
         <tag>jvm</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title><![CDATA[blog-表格]]></title>
-    <url>%2Fblog%2F2018%2F07%2F07%2Fblog-%E8%A1%A8%E6%A0%BC%2F</url>
-    <content type="text"><![CDATA[blog-md表格今天写blog的时候，想写一个表格，就是网上百度了一下，md表格的语法。 12345| 水果 | 价格 | 数量 || :--------: | :----- | :----: || 香蕉 | $1 | 5 || 苹果 | $1 | 6 || 草莓 | $1 | 7 | 这个是md的语法，效果是这样的。 水果 价格 数量 香蕉 $1 5 苹果 $1 6 草莓 $1 7 但是我的需求是这样的需要可以合并单元格的，最后才知道md暂不支持合并单元格。但是md是支持html的，html当然是支持合并单元格的。所以想要有合并单元格需求的时候，可以使用html来写表格。但是写html的时候也需要到其他的坑。下图为现象下图为html源码下图为md源码可能是md源码中有换行符的问题，导致解析出问题，多了好多&lt;br&gt;，我把所有的格式都去掉了，就可以了。下图为修改完的格式下午为修改后的md源码]]></content>
-      <categories>
-        <category>blog</category>
-      </categories>
-      <tags>
-        <tag>blog</tag>
       </tags>
   </entry>
   <entry>
@@ -177,19 +155,8 @@
       </tags>
   </entry>
   <entry>
-    <title><![CDATA[Hexo、Github搭建Blog--站内搜索]]></title>
-    <url>%2Fblog%2F2018%2F06%2F04%2FHexo%E3%80%81Github%E6%90%AD%E5%BB%BABlog-%E7%AB%99%E5%86%85%E6%90%9C%E7%B4%A2%2F</url>
-    <content type="text"><![CDATA[安装站内搜索主要是通过集成插件的方式实现，步骤如下： 安装 hexo-generator-search 在站点的根目录下执行以下命令：$ npm install hexo-generator-search --save 启用搜索编辑blog 根目录_config.yaml: search: path: search.xml field: post format: html limit: 10000]]></content>
-      <categories>
-        <category>blog</category>
-      </categories>
-      <tags>
-        <tag>blog</tag>
-      </tags>
-  </entry>
-  <entry>
     <title><![CDATA[Hexo、Github搭建Blog]]></title>
-    <url>%2Fblog%2F2018%2F06%2F03%2FHexo%E3%80%81Github%E6%90%AD%E5%BB%BABlog%2F</url>
+    <url>%2Fblog%2F2018%2F03%2F10%2FHexo%E3%80%81Github%E6%90%AD%E5%BB%BABlog%2F</url>
     <content type="text"><![CDATA[选择github和hexo搭建blog的原因这是我自己搭建的第一个blog,现在比较流行的有wordpess、github blog。wordpress 通过了解构建比较发杂，所以选择了使用github blog 搭建，使用的是md语法，部署直接使用的是github服务器，也不需要单独搭建服务器。wordpress我不是太了解，大神勿喷。 个人想法：现在做技术，其实在学校上学的时候是有些是时候有很多相似的地方，有些的地方有意思的地方就整理下，善于记录、积累:一，能把这些好想法也好，思路也好，都能记录下来，以便于日后能用到二，书写文章对思路也是一个很好的锻炼，就好像“茶壶里煮饺子”，饺子好了一定要倒出来，才算掌握，一个新的技术只有能清晰的讲解出来，也才算真正的理解三，以后在面试的时候也能也可以在简历上，把自己的github、个人站点、blog写上，也会让你在面试中加分 我也开始上路，把自己的blog刚刚弄好了，就写了这篇文章，md，之前写wiki用过，github写过简单的README.md，但是没有用md来写文章，可能文章格式不好看的地方，大神勿喷 环境准备git我感觉，要是做开发的同学本地一定会装git的，git主要拉取github项目，和github上项目关联。常用的命令也不说了，日常开发中也会经常用到。 node再有一个环境就是node环境，这个主要是hexo这个工具依赖node环境，node的环境的要求，这个我也太清楚，我的本地的node version : v8.11.1，之前开发用的6.x的版本，现在不做node开发，换的高一点版本。6.x+ 肯定是够用的。没问题。 hexohexo 这是blog主要使用的工具，步骤如下： 安装命令 npm i -g hexo 进入目录 cd /xx/xx 执行初始化 hexo init 解释下生成的目录 node_modules：是依赖包 public：存放的是生成的页面 scaffolds：命令生成文章等的模板 source：用命令创建的各种文章 themes：主题 _config.yml：整个博客的配置 db.json：source解析所得到的 package.json：项目所需模块项目的配置信息 创建blog project 首先创建github项目。 设置项目为blog，保存 设置hexo信息，设置你的git地址，分支。 开始小试牛刀hexo cleanhexo ghexo shexo g 是生成对应的文件，也就是把md编写的md文件，生成对应的html文件，可以让服务运行 hexo s 是启动hexo 服务，执行该命令会看到INFO Hexo is running at http://localhost:4000/blog/. Press Ctrl+C to stop.也就是说hexo服务已经起来了。可以通过http://localhost:4000/blog/ 这个url访问。也可以通过-p命令指定端口号。 hexo deploy 这个是部署github 服务的命令，就是讲本地的代码push到服务器上，其实也就是一个静态页面，推送上去。使用这个命令，在公网上使用你刚刚在github中设置pages的那块的url访问你的blog。这样别人就能看到了。 hexo new ‘my first blog’ 可以使用new 这个参数创建md 文件，会直接生成头信息。用md编辑器编辑，再推送到服务器上就ok了。 样式问题其实搞blog，有种当年玩qq空间的感觉，可以到网站去找自己的喜欢的样式，去设置，我也刚刚开始，也没有做的很好看，所以这块就不分享了。 站长统计及搜索引擎 统计留言：可以集成第三的统计插件，在自己的blog里的_config.yml 文件中设置。搜索引擎：可以在百度的站长工具中设置，自己要被爬的链接，把自己的blog url 贴进去，过几天百度爬过了就可以通过百度搜索自己的blog了。自己的文章也可以在百度中搜到了。 域名问题可以自己备案一个域名，在github中blog的项目设置中，pages那块会有个域名设置，这样。github会这个域名解析到你的blog项目下，这样就可以使用自己的域名访问了。是不是很爽呐。 总结 我这个只是刚刚开始，也算是小试牛刀，文章中提到的好多细节，我都没有深入去搞，我下面，我会写一些技术的文章，在写作的过程中，有深入的细节，我也会更新到这个文账中。 Blog源码地址： https://github.com/wangypeng/blog-source]]></content>
       <categories>
         <category>blog</category>
@@ -199,8 +166,30 @@
       </tags>
   </entry>
   <entry>
+    <title><![CDATA[Hexo、Github搭建Blog-表格]]></title>
+    <url>%2Fblog%2F2018%2F03%2F07%2FHexo%E3%80%81Github%E6%90%AD%E5%BB%BABlog-%E8%A1%A8%E6%A0%BC%2F</url>
+    <content type="text"><![CDATA[blog-md表格今天写blog的时候，想写一个表格，就是网上百度了一下，md表格的语法。 12345| 水果 | 价格 | 数量 || :--------: | :----- | :----: || 香蕉 | $1 | 5 || 苹果 | $1 | 6 || 草莓 | $1 | 7 | 这个是md的语法，效果是这样的。 水果 价格 数量 香蕉 $1 5 苹果 $1 6 草莓 $1 7 但是我的需求是这样的需要可以合并单元格的，最后才知道md暂不支持合并单元格。但是md是支持html的，html当然是支持合并单元格的。所以想要有合并单元格需求的时候，可以使用html来写表格。但是写html的时候也需要到其他的坑。下图为现象下图为html源码下图为md源码可能是md源码中有换行符的问题，导致解析出问题，多了好多&lt;br&gt;，我把所有的格式都去掉了，就可以了。下图为修改完的格式下午为修改后的md源码]]></content>
+      <categories>
+        <category>blog</category>
+      </categories>
+      <tags>
+        <tag>blog</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title><![CDATA[Hexo、Github搭建Blog--站内搜索]]></title>
+    <url>%2Fblog%2F2018%2F03%2F04%2FHexo%E3%80%81Github%E6%90%AD%E5%BB%BABlog-%E7%AB%99%E5%86%85%E6%90%9C%E7%B4%A2%2F</url>
+    <content type="text"><![CDATA[安装站内搜索主要是通过集成插件的方式实现，步骤如下： 安装 hexo-generator-search 在站点的根目录下执行以下命令：$ npm install hexo-generator-search --save 启用搜索编辑blog 根目录_config.yaml: search: path: search.xml field: post format: html limit: 10000]]></content>
+      <categories>
+        <category>blog</category>
+      </categories>
+      <tags>
+        <tag>blog</tag>
+      </tags>
+  </entry>
+  <entry>
     <title><![CDATA[Hello World]]></title>
-    <url>%2Fblog%2F2018%2F04%2F17%2Fhello-world%2F</url>
+    <url>%2Fblog%2F2018%2F02%2F17%2Fhello-world%2F</url>
     <content type="text"><![CDATA[Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub. Quick StartCreate a new post1$ hexo new "My New Post" More info: Writing Run server1$ hexo server More info: Server Generate static files1$ hexo generate More info: Generating Deploy to remote sites1$ hexo deploy More info: Deployment]]></content>
       <categories>
         <category>blog</category>
